@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 from datetime import datetime
 import pandapower as pp
-from icdbuilder.model.icd_static import subnetwork, services, dataTypeTemplates, datasets
+from icdbuilder.model.icd_static import *
 
 
 # Class containing an IED Capability Description (ICD) file representation according to the 
@@ -67,11 +67,44 @@ class ICDBuilder:
         _ = ET.SubElement(server, "Authentication")
         plantLD = ET.SubElement(server, "LDevice", attrib={"inst": "LD_Plant", "desc": ""})
         ln0 = ET.SubElement(plantLD, "LN0", attrib={"lnClass": "LLN0", "lnType": "LLN01", "inst": ""})
-        for key in datasets.keys():
-            ln0.append(ET.fromstring(datasets[key]))
-        # TODO: Add dataset whose elements depends on the number of single generators present
+        ICDBuilder._completeLN0(ln0)
 
+        plantLD.append(ET.fromstring(phyDevInfos))
+        # TODO: Modify these values depending on the plant characteristics derived 
+        # by the elements connected to it
+        ICDBuilder._appendMultipleElements(plantLD, plantChar.format(
+            maxGenP = 200,
+            maxAbsP = 200,
+            maxIndQ = 50,
+            maxCapQ = 50,
+            maxS = 210
+        ))
+        ICDBuilder._appendMultipleElements(plantLD, ctrlFunAvail)
+        ICDBuilder._appendMultipleElements(plantLD, measAvailPerGroup)
+        # TODO: For each single generation unit add a singleGenMeasTemplate LN accordingly
+        plantLD.append(ET.fromstring(mainCbrStatus))
+        # TODO: For each single generation unit add a singleGenStatusTemplate LN accordingly
+        ICDBuilder._appendMultipleElements(plantLD, controlFunConfigTemplate)
+    
     @staticmethod
     def _buildDataTypeTemplates(parent: ET.Element):
         dtt_xml = dataTypeTemplates.format()
         parent.append(ET.fromstring(dtt_xml))
+
+    @staticmethod
+    def _completeLN0(ln0: ET.Element):
+        for key in datasets.keys():
+            ln0.append(ET.fromstring(datasets[key]))
+        # TODO: Add dataset whose elements depends on the number of single generators present
+        # Building the ReportControl section
+        for key in reportControlBlocks:
+            ln0.append(ET.fromstring(reportControlBlocks[key]))
+        ICDBuilder._appendMultipleElements(ln0, ln0OtherDois)
+
+    @staticmethod
+    def _appendMultipleElements(parent: ET.Element, toParse: str):
+        # Parse and append other DOIs
+        # Wrap in a dummy root because it contains multiple top-level elements
+        elems_root = ET.fromstring(f"<root>{toParse}</root>")
+        for elem in elems_root:
+            parent.append(elem)
