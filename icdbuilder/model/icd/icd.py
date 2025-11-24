@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 from datetime import datetime
 import pandapower as pp
-from icdbuilder.model.icd_static import *
+from icdbuilder.model.icd.icd_static import *
 
 
 # Class containing an IED Capability Description (ICD) file representation according to the 
