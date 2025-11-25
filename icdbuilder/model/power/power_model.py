@@ -7,10 +7,7 @@ class GenType(Enum):
     HYDRO = "hydro"
     PV = "photovoltaic"
     WIND = "wind"
-
-class SplitMethod(Enum):
-    BUS = "bus"
-    UNIT = "unit"
+    OTHER = "other"
 
 class NonExistingBusException(Exception):
     def __init__(self, busId: int):
@@ -57,6 +54,146 @@ class PowerModel:
             raise NonExistingBusException(busId)
         self.storageUnits[id] = StorageUnit(id, name, busId, capacityKwh, maxPowerKw)
 
+    def __str__(self):
+        # Print each element in a different line
+        buses_str = "\n".join(str(bus) for bus in self.buses.values())
+        gen_units_str = "\n".join(str(gen) for gen in self.generationUnits.values())
+        storage_units_str = "\n".join(str(storage) for storage in self.storageUnits.values())
+        return f"## PowerModel:\n-- Buses:\n{buses_str}\n-- Generation Units:\n{gen_units_str}\n-- Storage Units:\n{storage_units_str}"
+
     @staticmethod
     def fromPandapowerModel(network: pandapowerNet) -> 'PowerModel':
-        return PowerModel()
+        model = PowerModel()
+
+        for i in range(len(network.bus)):
+            bus = network.bus.iloc[i]
+            model.addBus(i, bus["name"], bus["vn_kv"])
+        
+        for i in range(len(network.sgen)):
+            gen = network.sgen.iloc[i]
+            genType: GenType = None
+            if gen["type"] == "WP":
+                genType = GenType.WIND
+            elif gen["type"] == "PV":
+                genType = GenType.PV
+            elif gen["type"] == "hydro":
+                genType = GenType.HYDRO
+            elif gen["type"] == "CHP diesel":
+                genType = GenType.THERMAL
+            else:
+                genType = GenType.OTHER
+
+            model.addGenerationUnit(
+                id=i,
+                name=gen["name"],
+                busId=gen["bus"],
+                genType=genType,
+                installedCapacityKw=gen["p_mw"] * 1000  # Convert MVA to kW
+            )
+
+        for i in range(len(network.storage)):
+            storage = network.storage.iloc[i]
+            model.addStorageUnit(
+                id=i,
+                name=storage["name"],
+                busId=storage["bus"],
+                capacityKwh=storage["max_e_mwh"] * 1000,  # Convert MWh to kWh
+                maxPowerKw=storage["p_mw"] * 1000  # Convert MW to kW
+            )
+
+        return model
+        
+class SplitMethod(Enum):
+    BUS = "bus"
+    UNIT = "unit"
+
+class Split:
+    # Tresholds according to 
+    powerGenTresholdKw: float = 100
+    powerStoTresholdKw: float = 50
+
+    def __init__(self, name: str):
+        self.name = name
+        self.buses: dict = {}
+        self.generationUnits: dict = {}
+        self.storageUnits: dict = {}
+
+    def addBus(self, bus: Bus):
+        self.buses[bus.id] = bus
+    
+    def addGenerationUnit(self, genUnit: GenerationUnit):
+        if genUnit.busId not in self.buses.keys():
+            raise NonExistingBusException(genUnit.busId)
+        self.generationUnits[genUnit.id] = genUnit
+
+    def addStorageUnit(self, storageUnit: StorageUnit):
+        if storageUnit.busId not in self.buses.keys():
+            raise NonExistingBusException(storageUnit.busId)
+        self.storageUnits[storageUnit.id] = storageUnit
+
+    def getMaxGenerationCapacityKw(self) -> float:
+        totalCapacityKw: float = 0.0
+        for gen in self.generationUnits.values():
+            totalCapacityKw += gen.installedCapacityKw
+        return totalCapacityKw
+    
+    def getMaxReactivePowerKw(self, powerFactor: float = 0.95) -> float:
+        totalReactivePowerKw: float = self.getMaxGenerationCapacityKw() * ((1-powerFactor**2)**0.5 / powerFactor)
+        
+        return totalReactivePowerKw
+    
+    def getMaxNominalPowerKw(self) -> float:
+        totalPowerKw: float = (self.getMaxGenerationCapacityKw()**2 + self.getMaxReactivePowerKw()**2)**0.5
+        return totalPowerKw
+
+    @staticmethod
+    def fromPowerModelSplit(powerModel: PowerModel, splitMethod: SplitMethod) -> list['Split']:
+        splits: list[Split] = []
+
+        if splitMethod == SplitMethod.BUS:
+            for bus in powerModel.buses.values():
+                split = Split(name=f"Split_Bus_{bus.id}")
+                split.addBus(bus)
+
+                existsValidGen = False
+                for gen in powerModel.generationUnits.values():
+                    if gen.busId == bus.id:
+                        if gen.installedCapacityKw >= Split.powerGenTresholdKw:
+                            existsValidGen = True
+                        split.addGenerationUnit(gen)
+
+                existsValidSto = False
+                for storage in powerModel.storageUnits.values():
+                    if storage.busId == bus.id:
+                        if storage.maxPowerKw >= Split.powerStoTresholdKw:
+                            existsValidSto = True
+                        split.addStorageUnit(storage)
+
+                if existsValidGen or existsValidSto:
+                    splits.append(split)
+
+        elif splitMethod == SplitMethod.UNIT:
+            for gen in powerModel.generationUnits.values():
+                if gen.installedCapacityKw >= Split.powerGenTresholdKw:    
+                    split = Split(name=f"Split_Gen_{gen.id}")
+                    split.addBus(powerModel.buses[gen.busId])
+                    split.addGenerationUnit(gen)
+                    splits.append(split)
+
+            for storage in powerModel.storageUnits.values():
+                if storage.maxPowerKw >= Split.powerStoTresholdKw:
+                    split = Split(name=f"Split_Storage_{storage.id}")
+                    split.addBus(powerModel.buses[storage.busId])
+                    split.addStorageUnit(storage)
+                    splits.append(split)
+
+        return splits
+    
+    def __str__(self):
+        # Print each element in a different line
+        buses_str = "\n".join(str(bus) for bus in self.buses.values())
+        gen_units_str = "\n".join(str(gen) for gen in self.generationUnits.values())
+        storage_units_str = "\n".join(str(storage) for storage in self.storageUnits.values())
+        return f"## Split {self.name}:\n-- Buses:\n{buses_str}\n-- Generation Units:\n{gen_units_str}\n-- Storage Units:\n{storage_units_str}"
+
+    
