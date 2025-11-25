@@ -2,6 +2,8 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 import pandapower as pp
 from icdbuilder.model.icd.icd_static import *
+from icdbuilder.model.power import Split, SplitMethod
+from io import FileIO
 
 
 # Class containing an IED Capability Description (ICD) file representation according to the 
@@ -12,12 +14,16 @@ class ICD:
     
     def toFile(self, filename):
         # Write to file prettified
+        
+        file = FileIO(filename, mode='w')
         ET.indent(self.tree, space="  ")
-        self.tree.write(filename, encoding="utf-8", xml_declaration=True)
+        self.tree.write(file, encoding="utf-8", xml_declaration=True)
+        file.close()
 
 class ICDBuilder:
     @staticmethod
-    def build(contentDescription: str = "ICD File") -> ICD:
+    def build(split: Split) -> ICD:
+        contentDescription: str = f"ICD File for {split.name}"
         root = ET.Element("SCL", attrib = {
             "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
             "xmlns:sxi": "http://www.iec.ch/61850/2003/SCLcoordinates",
@@ -37,7 +43,7 @@ class ICDBuilder:
             "what": contentDescription
         })
         ICDBuilder._buildCommunication(root)
-        ICDBuilder._buildIED(root)
+        ICDBuilder._buildIED(root, split)
         ICDBuilder._buildDataTypeTemplates(root)
         return ICD(root)
 
@@ -53,7 +59,7 @@ class ICDBuilder:
             gateway="192.188.1.1")
         communication.append(ET.fromstring(subnet_xml))
 
-    def _buildIED(parent: ET.Element):
+    def _buildIED(parent: ET.Element, split: Split):
         ied = ET.SubElement(parent, "IED", attrib={
             "name": "CCI016_01",
             "engRight": "full",
@@ -70,20 +76,31 @@ class ICDBuilder:
         ICDBuilder._completeLN0(ln0)
 
         plantLD.append(ET.fromstring(phyDevInfos))
-        # TODO: Modify these values depending on the plant characteristics derived 
-        # by the elements connected to it
+        # TODO: Check with Geert!
         ICDBuilder._appendMultipleElements(plantLD, plantChar.format(
-            maxGenP = 200,
-            maxAbsP = 200,
-            maxIndQ = 50,
-            maxCapQ = 50,
-            maxS = 210
+            maxGenP = split.getMaxGenerationCapacityKw(),
+            maxAbsP = split.getMaxGenerationCapacityKw(),
+            maxIndQ = split.getMaxReactivePowerKw(),
+            maxCapQ = split.getMaxReactivePowerKw(),
+            maxS = split.getMaxNominalPowerKw()
         ))
         ICDBuilder._appendMultipleElements(plantLD, ctrlFunAvail)
         ICDBuilder._appendMultipleElements(plantLD, measAvailPerGroup)
-        # TODO: For each single generation unit add a singleGenMeasTemplate LN accordingly
+        # TODO: Check with Geert! 
+        i = 0
+        for gen in split.generationUnits.values():
+            i += 1
+            singleGenMeas = singleGenMeasTemplate.format(inst=i, name=gen.name)
+            ICDBuilder._appendMultipleElements(plantLD, singleGenMeas)
+
         plantLD.append(ET.fromstring(mainCbrStatus))
         # TODO: For each single generation unit add a singleGenStatusTemplate LN accordingly
+        i = 0
+        for gen in split.generationUnits.values():
+            i += 1
+            singleGenStatus = singleGenStatusTemplate.format(inst=i, name=gen.name)
+            ICDBuilder._appendMultipleElements(plantLD, singleGenStatus)
+            
         ICDBuilder._appendMultipleElements(plantLD, controlFunConfigTemplate)
     
     @staticmethod
