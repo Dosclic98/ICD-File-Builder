@@ -199,7 +199,7 @@ plantChar = """
     <SDI name="setMag" desc="">
       <DAI name="f" desc="Valore caratteristico di Impianto">
 <!-- that is Plant-specific value -->
-        <Val>{maxGenP}</Val>
+        <Val>{maxGenP:.2f}</Val>
       </DAI>
     </SDI>
   </DOI>
@@ -220,7 +220,7 @@ plantChar = """
 <!-- that is ... -->
       <DAI name="f" desc="Plant-characteristic value">
 <!-- that is ... -->
-        <Val>{maxAbsP}</Val>
+        <Val>{maxAbsP:.2f}</Val>
       </DAI>
     </SDI>
   </DOI>
@@ -239,7 +239,7 @@ plantChar = """
   <DOI name="VArRtg" desc="PdC - Maximum reactive inductive power (kVAr)">
     <SDI name="setMag" desc="">
       <DAI name="f" desc="Plant-characteristic value">
-        <Val>{maxIndQ}</Val>
+        <Val>{maxIndQ:.2f}</Val>
       </DAI>
     </SDI>
   </DOI>
@@ -258,7 +258,7 @@ plantChar = """
   <DOI name="VArRtg" desc="PdC - Maximum reactive capacitive power (kVAr)">
     <SDI name="setMag" desc="">
       <DAI name="f" desc="Plant-characteristic value">
-        <Val>{maxCapQ}</Val>
+        <Val>{maxCapQ:.2f}</Val>
       </DAI>
     </SDI>
   </DOI>
@@ -277,7 +277,7 @@ plantChar = """
   <DOI name="VARtg" desc="PdC - Maximum apparent power (kVA)">
     <SDI name="setMag" desc="">
       <DAI name="f" desc="Plant-characteristic value">
-        <Val>{maxS}</Val>
+        <Val>{maxS:.2f}</Val>
       </DAI>
     </SDI>
   </DOI>
@@ -370,7 +370,7 @@ measAvailPerGroup = """
 
 # Measure of P for each generator over the observability treshold (100 kW)
 singleGenMeasTemplate = """
-<LN lnClass="MMXU" lnType="MMXU2" inst="{ints}" prefix="SGG" desc="Measure of P per single generation group {name}">
+<LN lnClass="MMXU" lnType="MMXU2" inst="{inst}" prefix="SGG" desc="Measure of P per single generation group {name}">
   <DOI name="Beh" desc="">
     <DAI name="stVal">
       <Val>on</Val>
