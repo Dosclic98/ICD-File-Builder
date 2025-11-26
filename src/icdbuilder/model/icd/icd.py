@@ -14,7 +14,6 @@ class ICD:
     
     def toFile(self, filename):
         # Write to file prettified
-        
         file = FileIO(filename, mode='w')
         ET.indent(self.tree, space="  ")
         self.tree.write(file, encoding="utf-8", xml_declaration=True)
@@ -94,7 +93,7 @@ class ICDBuilder:
             ICDBuilder._appendMultipleElements(plantLD, singleGenMeas)
 
         plantLD.append(ET.fromstring(mainCbrStatus))
-        # TODO: For each single generation unit add a singleGenStatusTemplate LN accordingly
+        # TODO: Check with Geert!
         i = 0
         for gen in split.generationUnits.values():
             i += 1
