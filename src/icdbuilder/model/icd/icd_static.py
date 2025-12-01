@@ -100,7 +100,7 @@ reportControlBlocks = {
       <!-- that is brcb_Status_Alarms_Signals of the CCI -->
         <TrgOps dchg="true" qchg="true" gi="true" />
         <OptFields seqNum="true" timeStamp="true" dataSet="true" reasonCode="true" dataRef="true" entryID="true" configRef="true" bufOvfl="true" />
-        <RptEnabled max="2" desc="Client DSO" />
+        <RptEnabled max="1" desc="Client DSO" />
       </ReportControl>
     """,
     "pocPeriodicMeas": """
@@ -108,7 +108,7 @@ reportControlBlocks = {
       <!-- that is urcb_PoC_Meas4sec of the CCI -->
         <TrgOps period="true" gi="true" />
         <OptFields seqNum="true" timeStamp="true" dataSet="true" reasonCode="true" dataRef="true" entryID="true" configRef="true" />
-        <RptEnabled max="2" desc="Client DSO" />
+        <RptEnabled max="1" desc="Client DSO" />
       </ReportControl>
     """,
     "genAccPeriodicMeas": """
@@ -116,7 +116,7 @@ reportControlBlocks = {
       <!-- that is urcb_GenSto_Meas4sec of the CCI -->
         <TrgOps period="true" gi="true" />
         <OptFields seqNum="true" timeStamp="true" dataSet="true" reasonCode="true" dataRef="true" entryID="true" configRef="true" />
-        <RptEnabled max="2" desc="Client DSO" />
+        <RptEnabled max="1" desc="Client DSO" />
       </ReportControl>
     """,
     "genSingPeriodicMeas": """
@@ -124,7 +124,7 @@ reportControlBlocks = {
       <!-- that is urcb_SingGen_Meas4sec of the CCI -->
         <TrgOps period="true" gi="true" />
         <OptFields seqNum="true" timeStamp="true" dataSet="true" reasonCode="true" dataRef="true" entryID="true" configRef="true" />
-        <RptEnabled max="2" desc="Client DSO" />
+        <RptEnabled max="1" desc="Client DSO" />
       </ReportControl>    
     """    
 }
