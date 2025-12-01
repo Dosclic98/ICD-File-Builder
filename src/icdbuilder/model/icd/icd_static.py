@@ -93,6 +93,18 @@ datasets: dict = {
       """
 }
 
+datasetSingMeasTemplate = """
+<DataSet name="DS_R_SingGen_Mis4sec" desc="Measurements every 4 sec per single generation unit of the CCI">
+<!-- that is DS_R_SingGen_Meas4sec of the CCI -->
+  
+</DataSet>
+"""
+
+dataSingleMeas = """
+<FCDA ldInst="LD_Plant" lnClass="MMXU" fc="MX" lnInst="{inst}" prefix="SGG" doName="TotW" />
+<FCDA ldInst="LD_Plant" lnClass="DGEN" fc="ST" lnInst="{inst}" prefix="SSGG" doName="GnGrId" />
+"""
+
 # Periodic Reports linked to the previously defined datasets
 reportControlBlocks = {
     "alarms": """

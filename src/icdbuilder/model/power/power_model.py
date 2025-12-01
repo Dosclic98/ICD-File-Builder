@@ -114,9 +114,9 @@ class Split:
 
     def __init__(self, name: str):
         self.name = name
-        self.buses: dict = {}
-        self.generationUnits: dict = {}
-        self.storageUnits: dict = {}
+        self.buses:  dict[int, Bus] = {}
+        self.generationUnits:  dict[int, GenerationUnit] = {}
+        self.storageUnits:  dict[int, StorageUnit] = {}
 
     def addBus(self, bus: Bus):
         self.buses[bus.id] = bus
@@ -145,6 +145,16 @@ class Split:
     def getMaxNominalPowerKw(self) -> float:
         totalPowerKw: float = (self.getMaxGenerationCapacityKw()**2 + self.getMaxReactivePowerKw()**2)**0.5
         return totalPowerKw
+    
+    def getObsGenUnits(self) -> dict[int, (int, GenerationUnit)]:
+        # Return only the generation units whose active power surpasses the observability treshold
+        obsGenUnits: dict[int, GenerationUnit] = {}
+        i = 1
+        for id, gen in self.generationUnits.items():
+            if gen.installedCapacityKw >= Split.powerGenTresholdKw:
+                obsGenUnits[id] = (i, gen)
+                i += 1
+        return obsGenUnits
 
     @staticmethod
     def fromPowerModelSplit(powerModel: PowerModel, splitMethod: SplitMethod) -> list['Split']:
@@ -194,6 +204,6 @@ class Split:
         buses_str = "\n".join(str(bus) for bus in self.buses.values())
         gen_units_str = "\n".join(str(gen) for gen in self.generationUnits.values())
         storage_units_str = "\n".join(str(storage) for storage in self.storageUnits.values())
-        return f"## Split {self.name}:\n-- Buses:\n{buses_str}\n-- Generation Units:\n{gen_units_str}\n-- Storage Units:\n{storage_units_str}"
+        return f"## Split {self.name}:\n- Buses:\n{buses_str}\n- Generation Units:\n{gen_units_str}\n- Storage Units:\n{storage_units_str}"
 
     
