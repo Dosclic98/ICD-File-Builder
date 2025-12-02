@@ -114,9 +114,13 @@ class Split:
 
     def __init__(self, name: str):
         self.name = name
+        self.splitMethod: SplitMethod | None = None
         self.buses:  dict[int, Bus] = {}
         self.generationUnits:  dict[int, GenerationUnit] = {}
         self.storageUnits:  dict[int, StorageUnit] = {}
+
+    def setSplitMethod(self, splitMethod: SplitMethod):
+        self.splitMethod = splitMethod
 
     def addBus(self, bus: Bus):
         self.buses[bus.id] = bus
@@ -159,10 +163,11 @@ class Split:
     @staticmethod
     def fromPowerModelSplit(powerModel: PowerModel, splitMethod: SplitMethod) -> list['Split']:
         splits: list[Split] = []
-
+        
         if splitMethod == SplitMethod.BUS:
             for bus in powerModel.buses.values():
                 split = Split(name=f"Split_Bus_{bus.id}")
+                split.setSplitMethod(SplitMethod.BUS)
                 split.addBus(bus)
 
                 existsValidGen = False
@@ -186,6 +191,7 @@ class Split:
             for gen in powerModel.generationUnits.values():
                 if gen.installedCapacityKw >= Split.powerGenTresholdKw:    
                     split = Split(name=f"Split_Gen_{gen.id}")
+                    split.setSplitMethod(SplitMethod.UNIT)
                     split.addBus(powerModel.buses[gen.busId])
                     split.addGenerationUnit(gen)
                     splits.append(split)
@@ -193,6 +199,7 @@ class Split:
             for storage in powerModel.storageUnits.values():
                 if storage.maxPowerKw >= Split.powerStoTresholdKw:
                     split = Split(name=f"Split_Storage_{storage.id}")
+                    split.setSplitMethod(SplitMethod.UNIT)
                     split.addBus(powerModel.buses[storage.busId])
                     split.addStorageUnit(storage)
                     splits.append(split)
