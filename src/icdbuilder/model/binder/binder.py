@@ -14,8 +14,7 @@ class BindingType(Enum):
 
 # Each binding represents a mapping bween a IEC61850 data attribute and a power model value that can be monitored or controlled.
 class Binding(ABC):
-    def __init__(self, splitName: str, bindingType: BindingType, dataAttributePath: str):
-        self.splitName = splitName
+    def __init__(self, bindingType: BindingType, dataAttributePath: str):
         self.bindingType = bindingType
         self.dataAttributePath = dataAttributePath
 
@@ -34,9 +33,10 @@ class PandapowerElementType(Enum):
     LINE = "line"
     TRAFO = "trafo"
 
-# Measurement representation for pandapower elements
-# Each measurements maps a pandapower element attribute (both in terms of result and setpoint) to/from an IEC61850 data attribute
-class PandapowerMeasurement:
+# Component representation for pandapower measurements / controllable elements
+# Each component maps a pandapower element attribute (both in terms of result and setpoint) to/from an IEC61850 data attribute
+class PandapowerComponent:
+    # TODO: Add if the measurements is a result or a setpoint (if derives from the "res_" dataframe or not)
     def __init__(self, elementType: PandapowerElementType, elementId: int, attribute: str, sourceExponent: int, destExponent: int):
         self.elementType = elementType
         self.elementId = elementId
@@ -54,37 +54,30 @@ class PandapowerMeasurement:
         }
     
     def __str__(self):
-        return f"PandapowerMeasurement(elementType={self.elementType}, elementId={self.elementId}, attribute={self.attribute}, sourceExponent={self.sourceExponent}, destExponent={self.destExponent})"
+        return f"PandapowerComponent(elementType={self.elementType}, elementId={self.elementId}, attribute={self.attribute}, sourceExponent={self.sourceExponent}, destExponent={self.destExponent})"
 
-# Each binding represents a mapping between a IEC61850 data attribute and a list of pandapower measurements 
-# that can be monitored or controlled. The measurements are combined using a specified manipulation function.
+# Each binding represents a mapping between a IEC61850 data attribute and a list of pandapower components 
+# that can be monitored or controlled. The elements are combined using a specified manipulation function.
 # For example, a binding can map the total active power generation of a split to the sum of the active power
 # of all generators in that split. Or it can equally distribute the reactive power setpoint at the Point of Connection
 # to all generators in the split.  
 class PandapowerBinding(Binding):
-    def __init__(self, splitName: str, bindingType: BindingType, dataAttributePath: str, 
-                    measurements: list[PandapowerMeasurement], combFunction: ManipulationFunctionType):
-        super().__init__(splitName, bindingType, dataAttributePath)
-        self.measurements: list[PandapowerMeasurement] = measurements
+    def __init__(self, bindingType: BindingType, dataAttributePath: str, 
+                    components: list[PandapowerComponent], combFunction: ManipulationFunctionType):
+        super().__init__(bindingType, dataAttributePath)
+        self.components: list[PandapowerComponent] = components
         self.combFunction: ManipulationFunctionType = combFunction
 
     def __dict__(self):
         return {
-            "splitName": self.splitName,
             "bindingType": self.bindingType.value,
             "dataAttributePath": self.dataAttributePath,
-            "measurements": [m.__dict__() for m in self.measurements],
+            "components": [m.__dict__() for m in self.components],
             "combFunction": self.combFunction.value
         }
 
-    def toJSON(self):
-        return json.dumps(
-            self.__dict__(),
-            indent=4
-        )
-
     def __str__(self):
-        return f"PandapowerBinding(splitName={self.splitName}, bindingType={self.bindingType}, dataAttributePath={self.dataAttributePath}, measurements=[{', '.join(str(m) for m in self.measurements)}], combFunction={self.combFunction})"
+        return f"PandapowerBinding(splitName={self.splitName}, bindingType={self.bindingType}, dataAttributePath={self.dataAttributePath}, components=[{', '.join(str(m) for m in self.components)}], combFunction={self.combFunction})"
 
 
 class Binder(ABC):
@@ -98,14 +91,14 @@ class PandapowerBinder(Binder):
     def buildBindings(split: Split) -> list[PandapowerBinding]:
         bindings: list[PandapowerBinding] = []
 
-        # Adding single observable generator measurements bindings
+        # Adding single observable generator components bindings
         genUnits = split.getObsGenUnits()
         for id, (index, gen) in genUnits.items():
-            # Create measurement and binding for active power monitoring (at source it is in kW, at dest in MW)
-            measurement = PandapowerMeasurement(PandapowerElementType.SGEN, gen.id, "p_mw", 3, 6)
+            # Create component and binding for active power monitoring (at source it is in kW, at dest in MW)
+            component = PandapowerComponent(PandapowerElementType.SGEN, gen.id, "p_mw", 3, 6)
             dataAttributePath = singleGenMeasTemplate.format(inst=index)
-            binding = PandapowerBinding(split.name, BindingType.MONITOR, dataAttributePath, 
-                                        [measurement], ManipulationFunctionType.DIRECT)
+            binding = PandapowerBinding(BindingType.MONITOR, dataAttributePath, 
+                                        [component], ManipulationFunctionType.DIRECT)
             bindings.append(binding)
             # TODO: Probably here I should also add the health status of each gen unit (binded to the pandapower "in_service" attribute)
         
@@ -114,10 +107,10 @@ class PandapowerBinder(Binder):
         for genType in genTypes:
             genUnitrOfType = split.genGenUnitsPerType(genType)
             if len(genUnitrOfType) != 0:
-                measurements: list[PandapowerMeasurement] = []
+                components: list[PandapowerComponent] = []
                 for id, gen in genUnitrOfType.items():
-                    measurement = PandapowerMeasurement(PandapowerElementType.SGEN, gen.id, "p_mw", 3, 6)
-                    measurements.append(measurement)
+                    component = PandapowerComponent(PandapowerElementType.SGEN, gen.id, "p_mw", 3, 6)
+                    components.append(component)
                 if genType == GenType.PV:
                     genTypeStr = "GenPV"
                 elif genType == GenType.WIND:
@@ -125,8 +118,8 @@ class PandapowerBinder(Binder):
                 else:
                     genTypeStr = "GenTer"
                 dataAttributePath = perGenTypeMeasTemplate.format(genType=genTypeStr)
-                binding = PandapowerBinding(split.name, BindingType.MONITOR, dataAttributePath,
-                                            measurements, ManipulationFunctionType.SUM)
+                binding = PandapowerBinding(BindingType.MONITOR, dataAttributePath,
+                                            components, ManipulationFunctionType.SUM)
                 bindings.append(binding)
 
         return bindings

@@ -86,6 +86,7 @@ datasets: dict = {
         <DataSet name="DS_R_GenAcc_Mis4sec" desc="Measurements every 4 sec per generation and storage type of the CCI">
         <!-- that is DS_R_GenSto_Meas4sec of the CCI -->
           <FCDA ldInst="LD_Plant" lnClass="MMXU" fc="MX" lnInst="1" prefix="GenPV" doName="TotW" />
+          <FCDA ldInst="LD_Plant" lnClass="MMXU" fc="MX" lnInst="1" prefix="GenWi" doName="TotW" />
           <FCDA ldInst="LD_Plant" lnClass="MMXU" fc="MX" lnInst="1" prefix="GenTer" doName="TotW" />
           <FCDA ldInst="LD_Plant" lnClass="MMXU" fc="MX" lnInst="1" prefix="GenIdr" doName="TotW" />
           <FCDA ldInst="LD_Plant" lnClass="MMXU" fc="MX" lnInst="1" prefix="St" doName="TotW" />

@@ -58,5 +58,5 @@ class FromPPToBinderBuilder(Builder):
             bindings: list[PandapowerBinding] = PandapowerBinder.buildBindings(split=split)
             # Save bindings to a JSON file
             with open(outputPath.joinpath(f"{split.name}_bindings.json"), 'w') as f:
-                json_bindings = [binding.toJSON() for binding in bindings]
+                json_bindings = {"splitName": split.name, "bindings": [binding.__dict__() for binding in bindings]}
                 f.write(json.dumps(json_bindings, indent=4))

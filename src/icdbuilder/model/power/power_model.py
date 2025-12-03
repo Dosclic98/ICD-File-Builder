@@ -11,13 +11,21 @@ class GenType(Enum):
 
 class NonExistingBusException(Exception):
     def __init__(self, busId: int):
-        super().__init__(f"Bus with ID {busId} does not exist in the PowerModel.")
+        super().__init__(f"Bus with ID {busId} does not exist in the model.")
 
 @dataclass
 class Bus:
     id: int
     name: str
     voltageLevelKv: float
+
+@dataclass
+class Line:
+    id: int
+    name: str
+    fromBusId: int
+    toBusId: int
+    maxCurrentKA: float
 
 @dataclass
 class GenerationUnit:
@@ -40,9 +48,17 @@ class PowerModel:
         self.buses: dict = {}
         self.generationUnits: dict = {}
         self.storageUnits: dict = {}
+        self.lines: dict = {}
     
     def addBus(self, id: int, name: str, voltageLevelKv: float):
         self.buses[id] = Bus(id, name, voltageLevelKv)
+
+    def addLine(self, id: int, name: str, fromBusId: int, toBusId: int, maxCurrentKA: float):
+        if fromBusId not in self.buses.keys():
+            raise NonExistingBusException(fromBusId)
+        if toBusId not in self.buses.keys():
+            raise NonExistingBusException(toBusId)
+        self.lines[id] = Line(id, name, fromBusId, toBusId, maxCurrentKA)
     
     def addGenerationUnit(self, id: int, name: str, busId: int, genType: GenType, installedCapacityKw: float):
         if busId not in self.buses.keys():
@@ -57,9 +73,10 @@ class PowerModel:
     def __str__(self):
         # Print each element in a different line
         buses_str = "\n".join(str(bus) for bus in self.buses.values())
+        lines_str = "\n".join(str(line) for line in self.lines.values())
         gen_units_str = "\n".join(str(gen) for gen in self.generationUnits.values())
         storage_units_str = "\n".join(str(storage) for storage in self.storageUnits.values())
-        return f"## PowerModel:\n-- Buses:\n{buses_str}\n-- Generation Units:\n{gen_units_str}\n-- Storage Units:\n{storage_units_str}"
+        return f"## PowerModel:\n-- Buses:\n{buses_str}\-- Lines:\n{lines_str}\n-- Generation Units:\n{gen_units_str}\n-- Storage Units:\n{storage_units_str}"
 
     @staticmethod
     def fromPandapowerModel(network: pandapowerNet) -> 'PowerModel':
@@ -68,6 +85,16 @@ class PowerModel:
         for i in range(len(network.bus)):
             bus = network.bus.iloc[i]
             model.addBus(i, bus["name"], bus["vn_kv"])
+
+        for i in range(len(network.line)):
+            line = network.line.iloc[i]
+            model.addLine(
+                id=i,
+                name=line["name"],
+                fromBusId=line["from_bus"],
+                toBusId=line["to_bus"],
+                maxCurrentKA=line["max_i_ka"]
+            )
         
         for i in range(len(network.sgen)):
             gen = network.sgen.iloc[i]
@@ -118,6 +145,7 @@ class Split:
         self.buses:  dict[int, Bus] = {}
         self.generationUnits:  dict[int, GenerationUnit] = {}
         self.storageUnits:  dict[int, StorageUnit] = {}
+        self.lines: dict[int, Line] = {}
 
     def setSplitMethod(self, splitMethod: SplitMethod):
         self.splitMethod = splitMethod
@@ -125,6 +153,12 @@ class Split:
     def addBus(self, bus: Bus):
         self.buses[bus.id] = bus
     
+    def addLine(self, line: Line):
+        if line.fromBusId not in self.buses.keys():
+            raise NonExistingBusException(line.fromBusId)
+        
+        self.lines[line.id] = line
+
     def addGenerationUnit(self, genUnit: GenerationUnit):
         if genUnit.busId not in self.buses.keys():
             raise NonExistingBusException(genUnit.busId)
@@ -176,6 +210,10 @@ class Split:
                 split = Split(name=f"Split_Bus_{bus.id}")
                 split.setSplitMethod(SplitMethod.BUS)
                 split.addBus(bus)
+                for line in powerModel.lines.values():
+                    # Add lines whose bus is in the direction of HV
+                    if line.fromBusId == bus.id:
+                        split.addLine(line)
 
                 existsValidGen = False
                 for gen in powerModel.generationUnits.values():
@@ -211,13 +249,22 @@ class Split:
                     split.addStorageUnit(storage)
                     splits.append(split)
 
+            # Add lines of the present busses in each split
+            for split in splits:
+                # Add lines whose bus is in the direction of HV
+                for bus in split.buses.values():
+                    for line in powerModel.lines.values():
+                        if line.fromBusId == bus.id:
+                            split.addLine(line)
+
         return splits
     
     def __str__(self):
         # Print each element in a different line
         buses_str = "\n".join(str(bus) for bus in self.buses.values())
+        lines_str = "\n".join(str(line) for line in self.lines.values())
         gen_units_str = "\n".join(str(gen) for gen in self.generationUnits.values())
         storage_units_str = "\n".join(str(storage) for storage in self.storageUnits.values())
-        return f"## Split {self.name}:\n- Buses:\n{buses_str}\n- Generation Units:\n{gen_units_str}\n- Storage Units:\n{storage_units_str}"
+        return f"## Split {self.name}:\n- Buses:\n{buses_str}\n- Lines:\n{lines_str}\n- Generation Units:\n{gen_units_str}\n- Storage Units:\n{storage_units_str}"
 
     
