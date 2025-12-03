@@ -1,1 +1,1 @@
-from .power_model import PowerModel, Split, SplitMethod
+from .power_model import PowerModel, Split, SplitMethod, GenType

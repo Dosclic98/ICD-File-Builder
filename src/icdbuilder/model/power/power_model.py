@@ -159,7 +159,14 @@ class Split:
                 obsGenUnits[id] = (i, gen)
                 i += 1
         return obsGenUnits
-
+    
+    def genGenUnitsPerType(self, genType: GenType) -> dict[int, GenerationUnit]:
+        genUnitsPerType: dict[int, GenerationUnit] = {}
+        for id, gen in self.generationUnits.items():
+            if gen.genType == genType:
+                genUnitsPerType[id] = gen
+        return genUnitsPerType
+    
     @staticmethod
     def fromPowerModelSplit(powerModel: PowerModel, splitMethod: SplitMethod) -> list['Split']:
         splits: list[Split] = []
