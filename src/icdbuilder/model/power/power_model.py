@@ -206,7 +206,7 @@ class Split:
     
     def getMainBus(self) -> Bus | None:
         if len(self.buses) > 0:
-            return self.busses[0]
+            return self.buses[list(self.buses)[0]]
         return None
 
     def getLines(self) -> dict[int, Line]:

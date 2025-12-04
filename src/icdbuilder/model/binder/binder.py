@@ -94,7 +94,7 @@ class PandapowerBinder(Binder):
     def buildBindings(split: Split) -> list[PandapowerBinding]:
         bindings: list[PandapowerBinding] = []
 
-
+        bindings = PandapowerBinder._buildPdCBindings(split, bindings)
 
         bindings = PandapowerBinder._buildSingleGenBindings(split, bindings)
         # TODO: Probably here I should also add the health status of each gen unit (binded to the pandapower "in_service" attribute)
@@ -118,11 +118,11 @@ class PandapowerBinder(Binder):
             # Adding line voltages @ PdC (we get them from the lines connected to the bus)
             lines: dict[int, Line] = split.getLines()
             components = [PandapowerComponent(True, PandapowerElementType.LINE, id, "vm_from_pu", 1, 1) for id, line in lines.items()]
-            binding = PandapowerBinding(BindingType.MONITOR, pdcVoltStr, components, ManipulationFunctionType.DIRECT, [0.0 for _ in len(components)] )
+            binding = PandapowerBinding(BindingType.MONITOR, pdcVoltStr, components, ManipulationFunctionType.DIRECT, [0.0 for _ in range(len(components))] )
             bindings.append(binding)
             # Adding line currents @ PdC (we get them from the lines connected to the bus and we must convert them from kA to A)
             components = [PandapowerComponent(True, PandapowerElementType.LINE, id, "i_ka", 3, 1) for id, line in lines.items()] 
-            binding = PandapowerBinding(BindingType.MONITOR, pdcVoltStr, components, ManipulationFunctionType.DIRECT, [0.0 for _ in len(components)] )
+            binding = PandapowerBinding(BindingType.MONITOR, pdcVoltStr, components, ManipulationFunctionType.DIRECT, [0.0 for _ in range(len(components))] )
             bindings.append(binding)
 
         return bindings

@@ -1,4 +1,6 @@
-
+# TODO: Add alarm bindings for those alarms not having a default 
+# value and that must be connected to a pandapower value (e.g. 
+# health state of the single generators)  
 
 # Active power template for a single generator measurement
 singleGenMeasTemplate = "LD_Plant$SGGMMXU{inst}$MX$TotW"
@@ -15,6 +17,6 @@ pdcTotPStr = "LD_Plant$PdCMMXU1$MX$TotW"
 # Reactive power template @ PdC measurement
 pdcTotQStr = "LD_Plant$PdCMMXU1$MX$TotVAr"
 # Live voltages template @ PdC measurement array
-pdcVoltStr = "LD_Plant$PdCMMXU1$MX$PPV"
+pdcVoltStr = "LD_Plant$PdCMMXU1$MX$PPV" #TODO: Fix this. It is not right
 # Line currents template @ PdC measurement array
-pdcCurrQStr = "LD_Plant$PdCMMXU1$MX$A"
+pdcCurrQStr = "LD_Plant$PdCMMXU1$MX$A" #TODO: Fix this. It is not right
