@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from enum import Enum
-from icdbuilder.model.power import Split, GenType
+from icdbuilder.model.power import Split, GenType, StorageUnit, Line
 from icdbuilder.model.binder.binder_static import *
 from icdbuilder.model.binder.manipulation import ManipulationFunction, ManipulationFunctionType
 from types import FunctionType
@@ -36,8 +36,8 @@ class PandapowerElementType(Enum):
 # Component representation for pandapower measurements / controllable elements
 # Each component maps a pandapower element attribute (both in terms of result and setpoint) to/from an IEC61850 data attribute
 class PandapowerComponent:
-    # TODO: Add if the measurements is a result or a setpoint (if derives from the "res_" dataframe or not)
-    def __init__(self, elementType: PandapowerElementType, elementId: int, attribute: str, sourceExponent: int, destExponent: int):
+    def __init__(self, isResult: bool, elementType: PandapowerElementType, elementId: int, attribute: str, sourceExponent: int, destExponent: int):
+        self.isResult = isResult
         self.elementType = elementType
         self.elementId = elementId
         self.attribute = attribute
@@ -46,6 +46,7 @@ class PandapowerComponent:
 
     def __dict__(self):
         return {
+            "isResult": self.isResult,
             "elementType": self.elementType.value,
             "elementId": self.elementId,
             "attribute": self.attribute,
@@ -54,7 +55,7 @@ class PandapowerComponent:
         }
     
     def __str__(self):
-        return f"PandapowerComponent(elementType={self.elementType}, elementId={self.elementId}, attribute={self.attribute}, sourceExponent={self.sourceExponent}, destExponent={self.destExponent})"
+        return f"PandapowerComponent(isResult={self.isResult}, elementType={self.elementType}, elementId={self.elementId}, attribute={self.attribute}, sourceExponent={self.sourceExponent}, destExponent={self.destExponent})"
 
 # Each binding represents a mapping between a IEC61850 data attribute and a list of pandapower components 
 # that can be monitored or controlled. The elements are combined using a specified manipulation function.
@@ -63,21 +64,23 @@ class PandapowerComponent:
 # to all generators in the split.  
 class PandapowerBinding(Binding):
     def __init__(self, bindingType: BindingType, dataAttributePath: str, 
-                    components: list[PandapowerComponent], combFunction: ManipulationFunctionType):
+                    components: list[PandapowerComponent], combFunction: ManipulationFunctionType, defaultValue):
         super().__init__(bindingType, dataAttributePath)
         self.components: list[PandapowerComponent] = components
         self.combFunction: ManipulationFunctionType = combFunction
+        self.defaultValue = defaultValue
 
     def __dict__(self):
         return {
             "bindingType": self.bindingType.value,
             "dataAttributePath": self.dataAttributePath,
             "components": [m.__dict__() for m in self.components],
-            "combFunction": self.combFunction.value
+            "combFunction": self.combFunction.value,
+            "defaultValue": self.defaultValue
         }
 
     def __str__(self):
-        return f"PandapowerBinding(splitName={self.splitName}, bindingType={self.bindingType}, dataAttributePath={self.dataAttributePath}, components=[{', '.join(str(m) for m in self.components)}], combFunction={self.combFunction})"
+        return f"PandapowerBinding(splitName={self.splitName}, bindingType={self.bindingType}, dataAttributePath={self.dataAttributePath}, components=[{', '.join(str(m) for m in self.components)}], combFunction={self.combFunction}, defaultValue={self.defaultValue})"
 
 
 class Binder(ABC):
@@ -91,35 +94,85 @@ class PandapowerBinder(Binder):
     def buildBindings(split: Split) -> list[PandapowerBinding]:
         bindings: list[PandapowerBinding] = []
 
+
+
+        bindings = PandapowerBinder._buildSingleGenBindings(split, bindings)
+        # TODO: Probably here I should also add the health status of each gen unit (binded to the pandapower "in_service" attribute)
+        
+        bindings = PandapowerBinder._buildPerTypeBindings(split, bindings)
+
+        return bindings
+    
+    @staticmethod
+    def _buildPdCBindings(split: Split, bindings: list[Binding]) -> list[Binding]:
+        mainBus = split.getMainBus()
+        if mainBus is not None:
+            # Adding TotW @ PdC binding (we get it from the corresponding bus and we must convert it from kW to MW)
+            component = PandapowerComponent(True, PandapowerElementType.BUS, mainBus.id, "p_mw", 6, 3)
+            binding = PandapowerBinding(BindingType.MONITOR, pdcTotPStr, [component], ManipulationFunctionType.SUM, 0.0)
+            bindings.append(binding)
+            # Adding TotQ @ PdC binding (we get it from the corresponding bus and we must convert it from kW to MW)
+            component = PandapowerComponent(True, PandapowerElementType.BUS, mainBus.id, "q_mvar", 6, 3)
+            binding = PandapowerBinding(BindingType.MONITOR, pdcTotQStr, [component], ManipulationFunctionType.SUM, 0.0)
+            bindings.append(binding)
+            # Adding line voltages @ PdC (we get them from the lines connected to the bus)
+            lines: dict[int, Line] = split.getLines()
+            components = [PandapowerComponent(True, PandapowerElementType.LINE, id, "vm_from_pu", 1, 1) for id, line in lines.items()]
+            binding = PandapowerBinding(BindingType.MONITOR, pdcVoltStr, components, ManipulationFunctionType.DIRECT, [0.0 for _ in len(components)] )
+            bindings.append(binding)
+            # Adding line currents @ PdC (we get them from the lines connected to the bus and we must convert them from kA to A)
+            components = [PandapowerComponent(True, PandapowerElementType.LINE, id, "i_ka", 3, 1) for id, line in lines.items()] 
+            binding = PandapowerBinding(BindingType.MONITOR, pdcVoltStr, components, ManipulationFunctionType.DIRECT, [0.0 for _ in len(components)] )
+            bindings.append(binding)
+
+        return bindings
+        
+    
+    @staticmethod
+    def _buildSingleGenBindings(split: Split, bindings: list[Binding]) -> list[Binding]:
         # Adding single observable generator components bindings
         genUnits = split.getObsGenUnits()
         for id, (index, gen) in genUnits.items():
-            # Create component and binding for active power monitoring (at source it is in kW, at dest in MW)
-            component = PandapowerComponent(PandapowerElementType.SGEN, gen.id, "p_mw", 3, 6)
+            # Create component and binding for active power monitoring (at source it is in MW, at dest in kW)
+            component = PandapowerComponent(True, PandapowerElementType.SGEN, gen.id, "p_mw", 6, 3)
             dataAttributePath = singleGenMeasTemplate.format(inst=index)
             binding = PandapowerBinding(BindingType.MONITOR, dataAttributePath, 
-                                        [component], ManipulationFunctionType.DIRECT)
+                                        [component], ManipulationFunctionType.DIRECT, 0.0)
             bindings.append(binding)
-            # TODO: Probably here I should also add the health status of each gen unit (binded to the pandapower "in_service" attribute)
-        
+
+            # Create a component and binding for grid identifier for the single generation unit
+            dataAttributePath = singleGenIdTemplate.format(inst=index)
+            binding = PandapowerBinding(BindingType.MONITOR, dataAttributePath, [], ManipulationFunctionType.DIRECT, index)
+            bindings.append(binding)
+
+        return bindings
+    
+    def _buildPerTypeBindings(split: Split, bindings: list[Binding]) -> list[Binding]:
         # Adding total active power per generation type binding
         genTypes = [GenType.PV, GenType.WIND, GenType.THERMAL]
         for genType in genTypes:
             genUnitrOfType = split.genGenUnitsPerType(genType)
-            if len(genUnitrOfType) != 0:
-                components: list[PandapowerComponent] = []
-                for id, gen in genUnitrOfType.items():
-                    component = PandapowerComponent(PandapowerElementType.SGEN, gen.id, "p_mw", 3, 6)
-                    components.append(component)
-                if genType == GenType.PV:
-                    genTypeStr = "GenPV"
-                elif genType == GenType.WIND:
-                    genTypeStr = "GenWind"
-                else:
-                    genTypeStr = "GenTer"
-                dataAttributePath = perGenTypeMeasTemplate.format(genType=genTypeStr)
-                binding = PandapowerBinding(BindingType.MONITOR, dataAttributePath,
-                                            components, ManipulationFunctionType.SUM)
-                bindings.append(binding)
+            
+            components: list[PandapowerComponent] = []
+            for id, gen in genUnitrOfType.items():
+                component = PandapowerComponent(True, PandapowerElementType.SGEN, gen.id, "p_mw", 6, 3)
+                components.append(component)
+                
+            if genType == GenType.PV:
+                genTypeStr = "GenPV"
+            elif genType == GenType.WIND:
+                genTypeStr = "GenWind"
+            else:
+                genTypeStr = "GenTer"
+            dataAttributePath = perGenTypeTotPTemplate.format(genType=genTypeStr)
+            binding = PandapowerBinding(BindingType.MONITOR, dataAttributePath,
+                                        components, ManipulationFunctionType.SUM, 0.0)
+            bindings.append(binding)
+
+        # Add total active power for storage units
+        stoUnits: dict[int, StorageUnit] = split.getStoUnits()
+        components: list[PandapowerComponent] = [PandapowerComponent(True, PandapowerElementType.STORAGE, stoUnit.id, "p_mw", 6, 3) for id, stoUnit in stoUnits.items()] 
+        binding = PandapowerBinding(BindingType.MONITOR, stoTotPStr, components, ManipulationFunctionType.SUM, 0.0)
+        bindings.append(binding)
 
         return bindings

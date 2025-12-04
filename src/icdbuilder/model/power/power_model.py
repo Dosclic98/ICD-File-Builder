@@ -200,6 +200,17 @@ class Split:
             if gen.genType == genType:
                 genUnitsPerType[id] = gen
         return genUnitsPerType
+
+    def getStoUnits(self) -> dict[int, StorageUnit]:
+        return self.storageUnits
+    
+    def getMainBus(self) -> Bus | None:
+        if len(self.buses) > 0:
+            return self.busses[0]
+        return None
+
+    def getLines(self) -> dict[int, Line]:
+        return self.lines
     
     @staticmethod
     def fromPowerModelSplit(powerModel: PowerModel, splitMethod: SplitMethod) -> list['Split']:
