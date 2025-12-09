@@ -1,7 +1,3 @@
-# TODO: Add alarm bindings for those alarms not having a default 
-# value and that must be connected to a pandapower value (e.g. 
-# health state of the single generators)  
-
 # Health template for a single generator
 singleGenHealthTemplate = "LD_Plant$SSGGDGEN{inst}$ST$Health"
 # Active power template for a single generator measurement
@@ -27,4 +23,6 @@ pdcVoltAngStrs = ["LD_Plant$PdCMMXU1$MX$PPV$phsAB$cVal$ang$f", "LD_Plant$PdCMMXU
 # Line currents template @ PdC measurement array
 pdcCurrMagStrs = ["LD_Plant$PdCMMXU1$MX$A$phsA$cVal$mag$f", "LD_Plant$PdCMMXU1$MX$A$phsB$cVal$mag$f", "LD_Plant$PdCMMXU1$MX$A$phsC$cVal$mag$f"]
 
-# TODO: Add reactive power setpoint attribute
+# Reactive power setpoint attributes (respectively for read and write poerations)
+qSetReadStr = "LD_Plant$VArSdDVAR1$VArTgtSptPct$mxVal$f"
+qSetWriteStr = "LD_Plant$VArSdDVAR1$VArTgtSptPct$Oper$ctlVal$f"

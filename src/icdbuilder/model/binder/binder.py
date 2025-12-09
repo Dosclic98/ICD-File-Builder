@@ -64,11 +64,12 @@ class PandapowerComponent:
 # to all generators in the split.  
 class PandapowerBinding(Binding):
     def __init__(self, bindingType: BindingType, dataAttributePath: str, 
-                    components: list[PandapowerComponent], combFunction: ManipulationFunctionType, defaultValue):
+                    components: list[PandapowerComponent], combFunction: ManipulationFunctionType, defaultValue, scalingFactor: float = 1.0):
         super().__init__(bindingType, dataAttributePath)
         self.components: list[PandapowerComponent] = components
         self.combFunction: ManipulationFunctionType = combFunction
         self.defaultValue = defaultValue
+        self.scalingFactor = scalingFactor
 
     def __dict__(self):
         return {
@@ -76,11 +77,12 @@ class PandapowerBinding(Binding):
             "dataAttributePath": self.dataAttributePath,
             "components": [m.__dict__() for m in self.components],
             "combFunction": self.combFunction.value,
-            "defaultValue": self.defaultValue
+            "defaultValue": self.defaultValue,
+            "scalingFactor": self.scalingFactor
         }
 
     def __str__(self):
-        return f"PandapowerBinding(splitName={self.splitName}, bindingType={self.bindingType}, dataAttributePath={self.dataAttributePath}, components=[{', '.join(str(m) for m in self.components)}], combFunction={self.combFunction}, defaultValue={self.defaultValue})"
+        return f"PandapowerBinding(splitName={self.splitName}, bindingType={self.bindingType}, dataAttributePath={self.dataAttributePath}, components=[{', '.join(str(m) for m in self.components)}], combFunction={self.combFunction}, defaultValue={self.defaultValue}, scalingFactor={self.scalingFactor})"
 
 
 class Binder(ABC):
@@ -97,9 +99,10 @@ class PandapowerBinder(Binder):
         bindings = PandapowerBinder._buildPdCBindings(split, bindings)
 
         bindings = PandapowerBinder._buildSingleGenBindings(split, bindings)
-        # TODO: Probably here I should also add the health status of each gen unit (binded to the pandapower "in_service" attribute)
         
         bindings = PandapowerBinder._buildPerTypeBindings(split, bindings)
+
+        bindings = PandapowerBinder._buildSetpointBindings(split, bindings)
 
         return bindings
     
@@ -189,3 +192,16 @@ class PandapowerBinder(Binder):
         bindings.append(binding)
 
         return bindings
+    
+    # TODO: This function is still not fully correct since it should return a % of Smax and not the actual current sum of generators reactive power
+    def _buildSetpointBindings(split: Split, bindings: list[Binding]) -> list[Binding]:
+        genUnits = split.generationUnits
+        # Add read-only reactive power setpoint
+        componentsRO = [PandapowerComponent(True, PandapowerElementType.SGEN, id, "q_mvar", 6, 3) for id, gen in genUnits.items()]
+        bindingRO = PandapowerBinding(BindingType.MONITOR, qSetReadStr, componentsRO, ManipulationFunctionType.SUM, 0)
+        # Add write-only reactive power setpoint
+        componentsWO = [PandapowerComponent(False, PandapowerElementType.SGEN, id, "q_mvar", 6, 3) for id, gen in genUnits.items()]
+        bindingWO = PandapowerBinding(BindingType.CONTROL, qSetWriteStr, componentsWO, ManipulationFunctionType.SUM, 0)
+
+        bindings.append(bindingRO)
+        bindings.append(bindingWO)
