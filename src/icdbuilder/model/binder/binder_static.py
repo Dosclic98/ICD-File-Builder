@@ -16,7 +16,11 @@ stoTotPStr = "LD_Plant$StMMXU1$MX$TotW"
 pdcTotPStr = "LD_Plant$PdCMMXU1$MX$TotW"
 # Reactive power template @ PdC measurement
 pdcTotQStr = "LD_Plant$PdCMMXU1$MX$TotVAr"
-# Live voltages template @ PdC measurement array
-pdcVoltStr = "LD_Plant$PdCMMXU1$MX$PPV" #TODO: Fix this. It is not right
+
+# I'm kind of improperly using the following two data attributes but 
+# that's the best solution i have currently found
+# Live voltages (magnitude and angles) template @ PdC measurement for each phase
+pdcVoltMagStrs = ["LD_Plant$PdCMMXU1$MX$PPV$phsAB$cVal$mag", "LD_Plant$PdCMMXU1$MX$PPV$phsBC$cVal$mag", "LD_Plant$PdCMMXU1$MX$PPV$phsCA$cVal$mag"]
+pdcVoltAngStrs = ["LD_Plant$PdCMMXU1$MX$PPV$phsAB$cVal$ang", "LD_Plant$PdCMMXU1$MX$PPV$phsBC$cVal$ang", "LD_Plant$PdCMMXU1$MX$PPV$phsCA$cVal$ang"]
 # Line currents template @ PdC measurement array
-pdcCurrQStr = "LD_Plant$PdCMMXU1$MX$A" #TODO: Fix this. It is not right
+pdcCurrMagStrs = ["LD_Plant$PdCMMXU1$MX$A$phsA$cVal$mag", "LD_Plant$PdCMMXU1$MX$A$phsB$cVal$mag", "LD_Plant$PdCMMXU1$MX$A$phsC$cVal$mag"]

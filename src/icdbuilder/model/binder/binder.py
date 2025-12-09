@@ -5,7 +5,7 @@ from icdbuilder.model.power import Split, GenType, StorageUnit, Line
 from icdbuilder.model.binder.binder_static import *
 from icdbuilder.model.binder.manipulation import ManipulationFunction, ManipulationFunctionType
 from types import FunctionType
-import json
+import json, logging
 
 class BindingType(Enum):
     MONITOR = "monitor"
@@ -115,15 +115,22 @@ class PandapowerBinder(Binder):
             component = PandapowerComponent(True, PandapowerElementType.BUS, mainBus.id, "q_mvar", 6, 3)
             binding = PandapowerBinding(BindingType.MONITOR, pdcTotQStr, [component], ManipulationFunctionType.SUM, 0.0)
             bindings.append(binding)
-            # Adding line voltages @ PdC (we get them from the lines connected to the bus)
             lines: dict[int, Line] = split.getLines()
-            components = [PandapowerComponent(True, PandapowerElementType.LINE, id, "vm_from_pu", 1, 1) for id, line in lines.items()]
-            binding = PandapowerBinding(BindingType.MONITOR, pdcVoltStr, components, ManipulationFunctionType.DIRECT, [0.0 for _ in range(len(components))] )
-            bindings.append(binding)
-            # Adding line currents @ PdC (we get them from the lines connected to the bus and we must convert them from kA to A)
-            components = [PandapowerComponent(True, PandapowerElementType.LINE, id, "i_ka", 3, 1) for id, line in lines.items()] 
-            binding = PandapowerBinding(BindingType.MONITOR, pdcVoltStr, components, ManipulationFunctionType.DIRECT, [0.0 for _ in range(len(components))] )
-            bindings.append(binding)
+            for i, line in zip(range(len(lines)), lines.values()):
+                if i >= min(len(pdcVoltAngStrs), len(pdcVoltMagStrs)) or i >= len(pdcCurrMagStrs):
+                    raise logging.warning(f"Line id {line.id} exceeds the number of available data attributes")
+                else:
+                    # Adding line voltages @ PdC (we get them from the lines connected to the bus)
+                    componentMag = PandapowerComponent(True, PandapowerElementType.LINE, line.id, "vm_from_pu", 1, 1) 
+                    bindingMag = PandapowerBinding(BindingType.MONITOR, pdcVoltMagStrs[i], [componentMag], ManipulationFunctionType.SUM, 0.0)
+                    componentAng = PandapowerComponent(True, PandapowerElementType.LINE, line.id, "va_from_degree", 1, 1)
+                    bindingAng = PandapowerBinding(BindingType.MONITOR, pdcVoltMagStrs[i], [componentAng], ManipulationFunctionType.SUM, 0.0)
+                    bindings.append(bindingMag)
+                    bindings.append(bindingAng)
+                    # Adding line currents @ PdC (we get them from the lines connected to the bus and we must convert them from kA to A)
+                    componentCurr = PandapowerComponent(True, PandapowerElementType.LINE, line.id, "i_ka", 3, 1) 
+                    bindingCurr = PandapowerBinding(BindingType.MONITOR, pdcCurrMagStrs[i], [componentCurr], ManipulationFunctionType.SUM, 0.0)
+                    bindings.append(bindingCurr)
 
         return bindings
         
