@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 import pandapower as pp
 from icdbuilder.model.icd.icd_static import *
-from icdbuilder.model.power import Split, SplitMethod
+from icdbuilder.model.power import Split, SplitMethod, Bus
 from io import FileIO
 
 
@@ -112,7 +112,18 @@ class ICDBuilder:
     @staticmethod
     def _completeLN0(ln0: ET.Element, split: Split):
         for key in datasets.keys():
-            ln0.append(ET.fromstring(datasets[key]))
+            if key == "alarms":
+                alarms: ET.Element = ET.fromstring(datasets[key])
+                # Add the static FCDAs
+                ICDBuilder._appendMultipleElements(alarms, alarmsStaticFcdas)
+                # For all observable generators add an associated health alarm
+                obsGens: dict[int, dict[int, Bus]] = split.getObsGenUnits()
+                for genTuple in obsGens.values():
+                    alarms.append(ET.fromstring(alarmsDynFcdasTemplate.format(inst=genTuple[0])))
+                ln0.append(alarms)
+
+            else:
+                ln0.append(ET.fromstring(datasets[key]))
         # Add dataset whose elements depends on the number of single generators present
         datasetSingMeas: ET = ET.fromstring(datasetSingMeasTemplate)
         for genTuple in split.getObsGenUnits().values():

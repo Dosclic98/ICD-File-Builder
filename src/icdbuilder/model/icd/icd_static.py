@@ -52,25 +52,7 @@ datasets: dict = {
     "alarms": """
       <DataSet name="DS_R_Stato_Allarmi_Segnali" desc="Alarm and signal state of the CCI">
       <!-- that is DS_R_Status_Alarms_Signals of the CCI -->
-        <FCDA ldInst="LD_Plant" lnClass="DECP" fc="ST" lnInst="1" prefix="DisFR" doName="Beh" />
-        <FCDA ldInst="LD_Plant" lnClass="DGEN" fc="ST" lnInst="1" prefix="DisFR" doName="Beh" />
-        <FCDA ldInst="LD_Plant" lnClass="DSTO" fc="ST" lnInst="1" prefix="DisFR" doName="Beh" />
-        <FCDA ldInst="LD_Plant" lnClass="XCBR" fc="ST" lnInst="1" prefix="IDG" doName="Pos" />
-        <FCDA ldInst="LD_Plant" lnClass="DGEN" fc="ST" lnInst="1" prefix="SSGG" doName="Health" />
-        <FCDA ldInst="LD_Plant" lnClass="DGEN" fc="ST" lnInst="2" prefix="SSGG" doName="Health" />
-        <FCDA ldInst="LD_Plant" lnClass="DWMX" fc="ST" lnInst="1" prefix="Wlim" doName="Beh" />
-        <FCDA ldInst="LD_Plant" lnClass="DWMX" fc="ST" lnInst="1" prefix="Wlim" doName="FctOpStAuto" />
-        <FCDA ldInst="LD_Plant" lnClass="DWMX" fc="ST" lnInst="1" prefix="Wlim" doName="FctOpStEx" />
-        <FCDA ldInst="LD_Plant" lnClass="DAGC" fc="ST" lnInst="1" prefix="WSd" doName="Beh" />
-        <FCDA ldInst="LD_Plant" lnClass="DAGC" fc="ST" lnInst="1" prefix="WSd" doName="FctOpSt" />
-        <FCDA ldInst="LD_Plant" lnClass="DVAR" fc="ST" lnInst="1" prefix="VArSd" doName="Beh" />
-        <FCDA ldInst="LD_Plant" lnClass="DVAR" fc="ST" lnInst="1" prefix="VArSd" doName="FctOpSt" />
-        <FCDA ldInst="LD_Plant" lnClass="DFPF" fc="ST" lnInst="1" prefix="PFSP" doName="Beh" />
-        <FCDA ldInst="LD_Plant" lnClass="DFPF" fc="ST" lnInst="1" prefix="PFSP" doName="FctOpSt" />
-        <FCDA ldInst="LD_Plant" lnClass="DVVR" fc="ST" lnInst="1" prefix="VArV" doName="Beh" />
-        <FCDA ldInst="LD_Plant" lnClass="DVVR" fc="ST" lnInst="1" prefix="VArV" doName="FctOpSt" />
-        <FCDA ldInst="LD_Plant" lnClass="DPFW" fc="ST" lnInst="1" prefix="PFW" doName="Beh" />
-        <FCDA ldInst="LD_Plant" lnClass="DPFW" fc="ST" lnInst="1" prefix="PFW" doName="FctOpSt" />
+
       </DataSet>
       """,
       "pocPeriodicMeas": """
@@ -93,6 +75,29 @@ datasets: dict = {
         </DataSet>
       """
 }
+
+alarmsStaticFcdas = """
+<FCDA ldInst="LD_Plant" lnClass="DECP" fc="ST" lnInst="1" prefix="DisFR" doName="Beh" />
+<FCDA ldInst="LD_Plant" lnClass="DGEN" fc="ST" lnInst="1" prefix="DisFR" doName="Beh" />
+<FCDA ldInst="LD_Plant" lnClass="DSTO" fc="ST" lnInst="1" prefix="DisFR" doName="Beh" />
+<FCDA ldInst="LD_Plant" lnClass="XCBR" fc="ST" lnInst="1" prefix="IDG" doName="Pos" />
+<FCDA ldInst="LD_Plant" lnClass="DWMX" fc="ST" lnInst="1" prefix="Wlim" doName="Beh" />
+<FCDA ldInst="LD_Plant" lnClass="DWMX" fc="ST" lnInst="1" prefix="Wlim" doName="FctOpStAuto" />
+<FCDA ldInst="LD_Plant" lnClass="DWMX" fc="ST" lnInst="1" prefix="Wlim" doName="FctOpStEx" />
+<FCDA ldInst="LD_Plant" lnClass="DAGC" fc="ST" lnInst="1" prefix="WSd" doName="Beh" />
+<FCDA ldInst="LD_Plant" lnClass="DAGC" fc="ST" lnInst="1" prefix="WSd" doName="FctOpSt" />
+<FCDA ldInst="LD_Plant" lnClass="DVAR" fc="ST" lnInst="1" prefix="VArSd" doName="Beh" />
+<FCDA ldInst="LD_Plant" lnClass="DVAR" fc="ST" lnInst="1" prefix="VArSd" doName="FctOpSt" />
+<FCDA ldInst="LD_Plant" lnClass="DFPF" fc="ST" lnInst="1" prefix="PFSP" doName="Beh" />
+<FCDA ldInst="LD_Plant" lnClass="DFPF" fc="ST" lnInst="1" prefix="PFSP" doName="FctOpSt" />
+<FCDA ldInst="LD_Plant" lnClass="DVVR" fc="ST" lnInst="1" prefix="VArV" doName="Beh" />
+<FCDA ldInst="LD_Plant" lnClass="DVVR" fc="ST" lnInst="1" prefix="VArV" doName="FctOpSt" />
+<FCDA ldInst="LD_Plant" lnClass="DPFW" fc="ST" lnInst="1" prefix="PFW" doName="Beh" />
+<FCDA ldInst="LD_Plant" lnClass="DPFW" fc="ST" lnInst="1" prefix="PFW" doName="FctOpSt" />
+"""
+
+alarmsDynFcdasTemplate = """<FCDA ldInst="LD_Plant" lnClass="DGEN" fc="ST" lnInst="{inst}" prefix="SSGG" doName="Health" />"""
+
 
 datasetSingMeasTemplate = """
 <DataSet name="DS_R_SingGen_Mis4sec" desc="Measurements every 4 sec per single generation unit of the CCI">

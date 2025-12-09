@@ -24,3 +24,5 @@ pdcVoltMagStrs = ["LD_Plant$PdCMMXU1$MX$PPV$phsAB$cVal$mag$f", "LD_Plant$PdCMMXU
 pdcVoltAngStrs = ["LD_Plant$PdCMMXU1$MX$PPV$phsAB$cVal$ang$f", "LD_Plant$PdCMMXU1$MX$PPV$phsBC$cVal$ang$f", "LD_Plant$PdCMMXU1$MX$PPV$phsCA$cVal$ang$f"]
 # Line currents template @ PdC measurement array
 pdcCurrMagStrs = ["LD_Plant$PdCMMXU1$MX$A$phsA$cVal$mag$f", "LD_Plant$PdCMMXU1$MX$A$phsB$cVal$mag$f", "LD_Plant$PdCMMXU1$MX$A$phsC$cVal$mag$f"]
+
+# TODO: Add reactive power setpoint attribute
