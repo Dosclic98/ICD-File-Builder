@@ -2,6 +2,8 @@
 # value and that must be connected to a pandapower value (e.g. 
 # health state of the single generators)  
 
+# Health template for a single generator
+singleGenHealthTemplate = "LD_Plant$SSGGDGEN{inst}$ST$Health"
 # Active power template for a single generator measurement
 singleGenMeasTemplate = "LD_Plant$SGGMMXU{inst}$MX$TotW$mag$f"
 # Identifier template for a single generator

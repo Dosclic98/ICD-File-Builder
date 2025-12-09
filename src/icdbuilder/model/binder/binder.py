@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from icdbuilder.model.power import Split, GenType, StorageUnit, Line
 from icdbuilder.model.binder.binder_static import *
-from icdbuilder.model.binder.manipulation import ManipulationFunction, ManipulationFunctionType
+from icdbuilder.model.binder.manipulation import ManipulationFunction, ManipulationFunctionType, HealthType
 from types import FunctionType
 import json, logging
 
@@ -137,9 +137,15 @@ class PandapowerBinder(Binder):
     
     @staticmethod
     def _buildSingleGenBindings(split: Split, bindings: list[Binding]) -> list[Binding]:
-        # Adding single observable generator components bindings
         genUnits = split.getObsGenUnits()
         for id, (index, gen) in genUnits.items():
+            # Create a component binding for the health of the single generator
+            component = PandapowerComponent(False, PandapowerElementType.SGEN, gen.id, "in_service", 1, 1)
+            dataAttributePath = singleGenHealthTemplate.format(inst=index)
+            binding = PandapowerBinding(BindingType.BOTH, dataAttributePath,
+                                        [component], ManipulationFunctionType.S2H, HealthType.OK.value)
+            bindings.append(binding)
+
             # Create component and binding for active power monitoring (at source it is in MW, at dest in kW)
             component = PandapowerComponent(True, PandapowerElementType.SGEN, gen.id, "p_mw", 6, 3)
             dataAttributePath = singleGenMeasTemplate.format(inst=index)
