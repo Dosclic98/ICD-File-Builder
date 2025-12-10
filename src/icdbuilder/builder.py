@@ -23,19 +23,20 @@ class FromPPToICDBuilder(Builder):
         super().__init__(network)
 
 
-    def build(self, splitMethod: SplitMethod, outputPath: Path) -> list[Split]:
+    def build(self, splitMethod: SplitMethod, outputPath: Path | None) -> list[Split]:
         pm: PowerModel = PowerModel.fromPandapowerModel(self.network)
         splits: list[Split] = Split.fromPowerModelSplit(pm, splitMethod)
-        # Create the output path directory if it does not exist
-        os.makedirs(outputPath, exist_ok=True)
-        # Clear existing files in the output directory
-        for file in os.listdir(outputPath):
-            filePath = os.path.join(outputPath, file)
-            if os.path.isfile(filePath):
-                os.remove(filePath)
+        if outputPath is not None:
+            # Create the output path directory if it does not exist
+            os.makedirs(outputPath, exist_ok=True)
+            # Clear existing files in the output directory
+            for file in os.listdir(outputPath):
+                filePath = os.path.join(outputPath, file)
+                if os.path.isfile(filePath):
+                    os.remove(filePath)
 
-        for split in splits:
-            ICDBuilder.build(split=split).toFile(outputPath.joinpath(f"{split.name}.icd.xml"))
+            for split in splits:
+                ICDBuilder.build(split=split).toFile(outputPath.joinpath(f"{split.name}.icd.xml"))
         
         return splits
 
@@ -51,16 +52,17 @@ class FromPPToBinderBuilder(Builder):
     def __init__(self, network: pandapowerNet):
         super().__init__(network=network)
 
-    def build(self, splitMethod: SplitMethod, outputPath: Path) -> dict[str, SplitBindings]:
+    def build(self, splitMethod: SplitMethod, outputPath: Path | None = None) -> dict[str, SplitBindings]:
         pm: PowerModel = PowerModel.fromPandapowerModel(self.network)
         splits: list[Split] = Split.fromPowerModelSplit(pm, splitMethod)
-        # Create the output path directory if it does not exist
-        os.makedirs(outputPath, exist_ok=True)
-        # Clear existing files in the output directory
-        for file in os.listdir(outputPath):
-            filePath = os.path.join(outputPath, file)
-            if os.path.isfile(filePath):
-                os.remove(filePath)
+        if outputPath is not None:
+            # Create the output path directory if it does not exist
+            os.makedirs(outputPath, exist_ok=True)
+            # Clear existing files in the output directory
+            for file in os.listdir(outputPath):
+                filePath = os.path.join(outputPath, file)
+                if os.path.isfile(filePath):
+                    os.remove(filePath)
 
         mergedBindings: dict[str, SplitBindings] = dict()
         for split in splits:
@@ -68,9 +70,11 @@ class FromPPToBinderBuilder(Builder):
             # Save bindings to a JSON file
             splitBindings: SplitBindings = SplitBindings(split, bindings)
             mergedBindings[split.name] = splitBindings
-            with open(outputPath.joinpath(f"{split.name}_bindings.json"), 'w') as f:
-                f.write(json.dumps(splitBindings.__dict__(), indent=4))
-        with open(outputPath.joinpath("bindings.json"), "w") as f:
-            f.write(json.dumps({"merged": [mergedBindings[key].__dict__() for key in mergedBindings.keys()]}, indent=4))
+            if outputPath is not None:
+                with open(outputPath.joinpath(f"{split.name}_bindings.json"), 'w') as f:
+                    f.write(json.dumps(splitBindings.__dict__(), indent=4))
+        if outputPath is not None:
+            with open(outputPath.joinpath("bindings.json"), "w") as f:
+                f.write(json.dumps({"merged": [mergedBindings[key].__dict__() for key in mergedBindings.keys()]}, indent=4))
 
         return mergedBindings
