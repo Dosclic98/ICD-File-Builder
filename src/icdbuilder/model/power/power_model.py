@@ -218,7 +218,7 @@ class Split:
         
         if splitMethod == SplitMethod.BUS:
             for bus in powerModel.buses.values():
-                split = Split(name=f"Split_Bus_{bus.id}")
+                split = Split(name=f"CCI_Bus_{bus.id}")
                 split.setSplitMethod(SplitMethod.BUS)
                 split.addBus(bus)
                 for line in powerModel.lines.values():
@@ -246,7 +246,7 @@ class Split:
         elif splitMethod == SplitMethod.UNIT:
             for gen in powerModel.generationUnits.values():
                 if gen.installedCapacityKw >= Split.powerGenTresholdKw:    
-                    split = Split(name=f"Split_Gen_{gen.id}")
+                    split = Split(name=f"CCI_Gen_{gen.id}")
                     split.setSplitMethod(SplitMethod.UNIT)
                     split.addBus(powerModel.buses[gen.busId])
                     split.addGenerationUnit(gen)
@@ -254,7 +254,7 @@ class Split:
 
             for storage in powerModel.storageUnits.values():
                 if storage.maxPowerKw >= Split.powerStoTresholdKw:
-                    split = Split(name=f"Split_Storage_{storage.id}")
+                    split = Split(name=f"CCI_Storage_{storage.id}")
                     split.setSplitMethod(SplitMethod.UNIT)
                     split.addBus(powerModel.buses[storage.busId])
                     split.addStorageUnit(storage)

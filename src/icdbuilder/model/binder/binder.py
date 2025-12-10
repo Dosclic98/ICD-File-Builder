@@ -205,3 +205,5 @@ class PandapowerBinder(Binder):
 
         bindings.append(bindingRO)
         bindings.append(bindingWO)
+
+        return bindings
