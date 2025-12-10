@@ -11,5 +11,5 @@ with open("requirements.txt", "r") as rf:
         install_requires=requirements,
         author="Davide Savarro",
         author_email="davide.savarro@unito.it",
-        description="A tool to build ICD files from pandapower networks"
+        description="A tool to build ICD files from pandapower networks and bindings for the COSIM cosimulation environment"
         )
