@@ -15,7 +15,10 @@ class ManipulationFunction:
 
     @staticmethod
     def direct(value):
-        return value
+        if type(value) in [list] and len(value) == 1:
+            return value[0]
+        else:
+            raise ValueError("Direct manipulation function expects a list of size 1 as input.")
 
     @staticmethod
     def sum(values: list[Union[int, float]]) -> Union[int, float]:
