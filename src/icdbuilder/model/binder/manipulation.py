@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Union
 
 class HealthType(Enum):
     OK = 1
@@ -17,8 +18,8 @@ class ManipulationFunction:
         return value
 
     @staticmethod
-    def sum(*args):
-        return sum(args)
+    def sum(values: list[Union[int, float]]) -> Union[int, float]:
+        return sum(values)
     
     @staticmethod
     def serviceToHealth(value, isInverse: bool = False):
