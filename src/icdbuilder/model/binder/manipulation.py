@@ -27,7 +27,7 @@ class ManipulationFunction:
     @staticmethod
     def serviceToHealth(value, isInverse: bool = False):
         if not isInverse:
-            return HealthType.OK if value else HealthType.ALARM
+            return HealthType.OK.value if value else HealthType.ALARM.value
         else:
             return True if value == HealthType.OK else False
     
