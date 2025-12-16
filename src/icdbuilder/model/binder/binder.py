@@ -14,9 +14,11 @@ class BindingType(Enum):
 
 # Each binding represents a mapping bween a IEC61850 data attribute and a power model value that can be monitored or controlled.
 class Binding(ABC):
+    defaultIEDName = "CCI016_01"
     def __init__(self, bindingType: BindingType, dataAttributePath: str):
         self.bindingType = bindingType
-        self.dataAttributePath = dataAttributePath
+        # Prepend the default IED name to the data attribute path
+        self.dataAttributePath = Binding.defaultIEDName + dataAttributePath
 
     def isMonitorable(self) -> bool:
         return self.bindingType in [BindingType.MONITOR, BindingType.BOTH]
@@ -198,10 +200,10 @@ class PandapowerBinder(Binder):
         genUnits = split.generationUnits
         # Add read-only reactive power setpoint
         componentsRO = [PandapowerComponent(True, PandapowerElementType.SGEN, id, "q_mvar", 6, 3) for id, gen in genUnits.items()]
-        bindingRO = PandapowerBinding(BindingType.MONITOR, qSetReadStr, componentsRO, ManipulationFunctionType.SUM, 0)
+        bindingRO = PandapowerBinding(BindingType.MONITOR, qSetReadStr, componentsRO, ManipulationFunctionType.SUM, 0.0)
         # Add write-only reactive power setpoint
         componentsWO = [PandapowerComponent(False, PandapowerElementType.SGEN, id, "q_mvar", 6, 3) for id, gen in genUnits.items()]
-        bindingWO = PandapowerBinding(BindingType.CONTROL, qSetWriteStr, componentsWO, ManipulationFunctionType.SUM, 0)
+        bindingWO = PandapowerBinding(BindingType.CONTROL, qSetWriteStr, componentsWO, ManipulationFunctionType.SUM, 0.0)
 
         bindings.append(bindingRO)
         bindings.append(bindingWO)
