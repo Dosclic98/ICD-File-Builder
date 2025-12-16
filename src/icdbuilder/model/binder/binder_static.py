@@ -1,5 +1,5 @@
 # Health template for a single generator
-singleGenHealthTemplate = "LD_Plant$SSGGDGEN{inst}$ST$Health"
+singleGenHealthTemplate = "LD_Plant$SSGGDGEN{inst}$ST$Health$stVal"
 # Active power template for a single generator measurement
 singleGenMeasTemplate = "LD_Plant$SGGMMXU{inst}$MX$TotW$mag$f"
 # Identifier template for a single generator

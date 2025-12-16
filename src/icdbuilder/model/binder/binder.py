@@ -177,7 +177,7 @@ class PandapowerBinder(Binder):
             if genType == GenType.PV:
                 genTypeStr = "GenPV"
             elif genType == GenType.WIND:
-                genTypeStr = "GenWind"
+                genTypeStr = "GenWi"
             else:
                 genTypeStr = "GenTer"
             dataAttributePath = perGenTypeTotPTemplate.format(genType=genTypeStr)
