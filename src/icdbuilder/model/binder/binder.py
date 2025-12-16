@@ -198,10 +198,10 @@ class PandapowerBinder(Binder):
         genUnits = split.generationUnits
         # Add read-only reactive power setpoint
         componentsRO = [PandapowerComponent(True, PandapowerElementType.SGEN, id, "q_mvar", 6, 3) for id, gen in genUnits.items()]
-        bindingRO = PandapowerBinding(BindingType.MONITOR, qSetReadStr, componentsRO, ManipulationFunctionType.SUM, 0)
+        bindingRO = PandapowerBinding(BindingType.MONITOR, qSetReadStr, componentsRO, ManipulationFunctionType.SUM, 0.0)
         # Add write-only reactive power setpoint
         componentsWO = [PandapowerComponent(False, PandapowerElementType.SGEN, id, "q_mvar", 6, 3) for id, gen in genUnits.items()]
-        bindingWO = PandapowerBinding(BindingType.CONTROL, qSetWriteStr, componentsWO, ManipulationFunctionType.SUM, 0)
+        bindingWO = PandapowerBinding(BindingType.CONTROL, qSetWriteStr, componentsWO, ManipulationFunctionType.SUM, 0.0)
 
         bindings.append(bindingRO)
         bindings.append(bindingWO)
