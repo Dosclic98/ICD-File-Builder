@@ -14,11 +14,9 @@ class BindingType(Enum):
 
 # Each binding represents a mapping bween a IEC61850 data attribute and a power model value that can be monitored or controlled.
 class Binding(ABC):
-    defaultIEDName = "CCI016_01"
     def __init__(self, bindingType: BindingType, dataAttributePath: str):
         self.bindingType = bindingType
-        # Prepend the default IED name to the data attribute path
-        self.dataAttributePath = Binding.defaultIEDName + dataAttributePath
+        self.dataAttributePath = dataAttributePath
 
     def isMonitorable(self) -> bool:
         return self.bindingType in [BindingType.MONITOR, BindingType.BOTH]
