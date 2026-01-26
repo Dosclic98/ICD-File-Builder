@@ -14,9 +14,10 @@ class BindingType(Enum):
 
 # Each binding represents a mapping bween a IEC61850 data attribute and a power model value that can be monitored or controlled.
 class Binding(ABC):
-    def __init__(self, bindingType: BindingType, dataAttributePath: str):
+    def __init__(self, bindingType: BindingType, dataAttributePath: str, timestampAttributePath: str):
         self.bindingType = bindingType
         self.dataAttributePath = dataAttributePath
+        self.timestampAttributePath = timestampAttributePath
 
     def isMonitorable(self) -> bool:
         return self.bindingType in [BindingType.MONITOR, BindingType.BOTH]
@@ -63,9 +64,10 @@ class PandapowerComponent:
 # of all generators in that split. Or it can equally distribute the reactive power setpoint at the Point of Connection
 # to all generators in the split.  
 class PandapowerBinding(Binding):
-    def __init__(self, bindingType: BindingType, dataAttributePath: str, 
-                    components: list[PandapowerComponent], combFunction: ManipulationFunctionType, defaultValue, scalingFactor: float = 1.0):
-        super().__init__(bindingType, dataAttributePath)
+    def __init__(self, bindingType: BindingType, dataAttributePath: str, timestampAttributePath: str,
+                    components: list[PandapowerComponent], combFunction: ManipulationFunctionType, 
+                    defaultValue, scalingFactor: float = 1.0):
+        super().__init__(bindingType, dataAttributePath, timestampAttributePath)
         self.components: list[PandapowerComponent] = components
         self.combFunction: ManipulationFunctionType = combFunction
         self.defaultValue = defaultValue
@@ -75,6 +77,7 @@ class PandapowerBinding(Binding):
         return {
             "bindingType": self.bindingType.value,
             "dataAttributePath": self.dataAttributePath,
+            "timestampAttributePath": self.timestampAttributePath,
             "components": [m.__dict__() for m in self.components],
             "combFunction": self.combFunction.value,
             "defaultValue": self.defaultValue,
@@ -82,7 +85,7 @@ class PandapowerBinding(Binding):
         }
 
     def __str__(self):
-        return f"PandapowerBinding(splitName={self.splitName}, bindingType={self.bindingType}, dataAttributePath={self.dataAttributePath}, components=[{', '.join(str(m) for m in self.components)}], combFunction={self.combFunction}, defaultValue={self.defaultValue}, scalingFactor={self.scalingFactor})"
+        return f"PandapowerBinding(splitName={self.splitName}, bindingType={self.bindingType}, dataAttributePath={self.dataAttributePath}, timestampAttributePath={self.timestampAttributePath}, components=[{', '.join(str(m) for m in self.components)}], combFunction={self.combFunction}, defaultValue={self.defaultValue}, scalingFactor={self.scalingFactor})"
 
 
 class Binder(ABC):
@@ -112,11 +115,11 @@ class PandapowerBinder(Binder):
         if mainBus is not None:
             # Adding TotW @ PdC binding (we get it from the corresponding bus and we must convert it from kW to MW)
             component = PandapowerComponent(True, PandapowerElementType.BUS, mainBus.id, "p_mw", 6, 3)
-            binding = PandapowerBinding(BindingType.MONITOR, pdcTotPStr, [component], ManipulationFunctionType.SUM, 0.0)
+            binding = PandapowerBinding(BindingType.MONITOR, pdcTotPStr, pdcTotPTimeStr, [component], ManipulationFunctionType.SUM, 0.0)
             bindings.append(binding)
             # Adding TotQ @ PdC binding (we get it from the corresponding bus and we must convert it from kW to MW)
             component = PandapowerComponent(True, PandapowerElementType.BUS, mainBus.id, "q_mvar", 6, 3)
-            binding = PandapowerBinding(BindingType.MONITOR, pdcTotQStr, [component], ManipulationFunctionType.SUM, 0.0)
+            binding = PandapowerBinding(BindingType.MONITOR, pdcTotQStr, pdcTotQTimeStr, [component], ManipulationFunctionType.SUM, 0.0)
             bindings.append(binding)
             lines: dict[int, Line] = split.getLines()
             for i, line in zip(range(len(lines)), lines.values()):
@@ -125,14 +128,14 @@ class PandapowerBinder(Binder):
                 else:
                     # Adding line voltages @ PdC (we get them from the lines connected to the bus)
                     componentMag = PandapowerComponent(True, PandapowerElementType.LINE, line.id, "vm_from_pu", 1, 1) 
-                    bindingMag = PandapowerBinding(BindingType.MONITOR, pdcVoltMagStrs[i], [componentMag], ManipulationFunctionType.SUM, 0.0)
+                    bindingMag = PandapowerBinding(BindingType.MONITOR, pdcVoltMagStrs[i], pdcVoltMagTimeStrs[i], [componentMag], ManipulationFunctionType.SUM, 0.0)
                     componentAng = PandapowerComponent(True, PandapowerElementType.LINE, line.id, "va_from_degree", 1, 1)
-                    bindingAng = PandapowerBinding(BindingType.MONITOR, pdcVoltMagStrs[i], [componentAng], ManipulationFunctionType.SUM, 0.0)
+                    bindingAng = PandapowerBinding(BindingType.MONITOR, pdcVoltAngStrs[i], pdcVoltAngTimeStrs[i], [componentAng], ManipulationFunctionType.SUM, 0.0)
                     bindings.append(bindingMag)
                     bindings.append(bindingAng)
                     # Adding line currents @ PdC (we get them from the lines connected to the bus and we must convert them from kA to A)
                     componentCurr = PandapowerComponent(True, PandapowerElementType.LINE, line.id, "i_ka", 3, 1) 
-                    bindingCurr = PandapowerBinding(BindingType.MONITOR, pdcCurrMagStrs[i], [componentCurr], ManipulationFunctionType.SUM, 0.0)
+                    bindingCurr = PandapowerBinding(BindingType.MONITOR, pdcCurrMagStrs[i], pdcCurrMagTimeStrs[i], [componentCurr], ManipulationFunctionType.SUM, 0.0)
                     bindings.append(bindingCurr)
 
         return bindings
@@ -145,20 +148,23 @@ class PandapowerBinder(Binder):
             # Create a component binding for the health of the single generator
             component = PandapowerComponent(False, PandapowerElementType.SGEN, gen.id, "in_service", 1, 1)
             dataAttributePath = singleGenHealthTemplate.format(inst=index)
-            binding = PandapowerBinding(BindingType.BOTH, dataAttributePath,
+            timeAttributePath = singleGenHealthTimeTemplate.format(inst=index)
+            binding = PandapowerBinding(BindingType.BOTH, dataAttributePath, timeAttributePath,
                                         [component], ManipulationFunctionType.S2H, HealthType.OK.value)
             bindings.append(binding)
 
             # Create component and binding for active power monitoring (at source it is in MW, at dest in kW)
             component = PandapowerComponent(True, PandapowerElementType.SGEN, gen.id, "p_mw", 6, 3)
             dataAttributePath = singleGenMeasTemplate.format(inst=index)
-            binding = PandapowerBinding(BindingType.MONITOR, dataAttributePath, 
+            timeAttributePath = singleGenMeasTimeTemplate.format(inst=index)
+            binding = PandapowerBinding(BindingType.MONITOR, dataAttributePath, timeAttributePath,
                                         [component], ManipulationFunctionType.DIRECT, 0.0)
             bindings.append(binding)
 
             # Create a component and binding for grid identifier for the single generation unit
             dataAttributePath = singleGenIdTemplate.format(inst=index)
-            binding = PandapowerBinding(BindingType.MONITOR, dataAttributePath, [], ManipulationFunctionType.DIRECT, index)
+            timeAttributePath = singleGenIdTimeTemplate.format(inst=index)
+            binding = PandapowerBinding(BindingType.MONITOR, dataAttributePath, timeAttributePath, [], ManipulationFunctionType.DIRECT, index)
             bindings.append(binding)
 
         return bindings
@@ -181,14 +187,15 @@ class PandapowerBinder(Binder):
             else:
                 genTypeStr = "GenTer"
             dataAttributePath = perGenTypeTotPTemplate.format(genType=genTypeStr)
-            binding = PandapowerBinding(BindingType.MONITOR, dataAttributePath,
+            timeAttributePath = perGenTypeTotPTimeTemplate.format(genType=genTypeStr)
+            binding = PandapowerBinding(BindingType.MONITOR, dataAttributePath, timeAttributePath,
                                         components, ManipulationFunctionType.SUM, 0.0)
             bindings.append(binding)
 
         # Add total active power for storage units
         stoUnits: dict[int, StorageUnit] = split.getStoUnits()
         components: list[PandapowerComponent] = [PandapowerComponent(True, PandapowerElementType.STORAGE, stoUnit.id, "p_mw", 6, 3) for id, stoUnit in stoUnits.items()] 
-        binding = PandapowerBinding(BindingType.MONITOR, stoTotPStr, components, ManipulationFunctionType.SUM, 0.0)
+        binding = PandapowerBinding(BindingType.MONITOR, stoTotPStr, stoToPTimeStr, components, ManipulationFunctionType.SUM, 0.0)
         bindings.append(binding)
 
         return bindings
@@ -198,10 +205,10 @@ class PandapowerBinder(Binder):
         genUnits = split.generationUnits
         # Add read-only reactive power setpoint
         componentsRO = [PandapowerComponent(True, PandapowerElementType.SGEN, id, "q_mvar", 6, 3) for id, gen in genUnits.items()]
-        bindingRO = PandapowerBinding(BindingType.MONITOR, qSetReadStr, componentsRO, ManipulationFunctionType.SUM, 0.0)
+        bindingRO = PandapowerBinding(BindingType.MONITOR, qSetReadStr, qSetReadTimeStr, componentsRO, ManipulationFunctionType.SUM, 0.0)
         # Add write-only reactive power setpoint
         componentsWO = [PandapowerComponent(False, PandapowerElementType.SGEN, id, "q_mvar", 6, 3) for id, gen in genUnits.items()]
-        bindingWO = PandapowerBinding(BindingType.CONTROL, qSetWriteStr, componentsWO, ManipulationFunctionType.SUM, 0.0)
+        bindingWO = PandapowerBinding(BindingType.CONTROL, qSetWriteStr, qSetWriteTimeStr, componentsWO, ManipulationFunctionType.SUM, 0.0)
 
         bindings.append(bindingRO)
         bindings.append(bindingWO)
