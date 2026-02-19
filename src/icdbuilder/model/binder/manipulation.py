@@ -28,10 +28,11 @@ class ManipulationFunction:
         if not isInverse:
             return sum(values)
         else:
-            # Distribute equall over numOut outputs
+            # Distribute the single value equally over numOut outputs
             if numOut <= 0:
                 raise ValueError("numOut must be a positive integer.")
-            return values / numOut
+            else:
+                return [values / numOut for _ in range(numOut)]
     
     @staticmethod
     def serviceToHealth(value, isInverse: bool = False) -> Union[int, list[bool]]:
