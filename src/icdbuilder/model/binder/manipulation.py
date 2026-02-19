@@ -34,11 +34,11 @@ class ManipulationFunction:
             return values / numOut
     
     @staticmethod
-    def serviceToHealth(value, isInverse: bool = False):
+    def serviceToHealth(value, isInverse: bool = False) -> Union[int, list[bool]]:
         if not isInverse:
             return HealthType.OK.value if value else HealthType.ALARM.value
         else:
-            return True if value == HealthType.OK else False
+            return [True] if value == HealthType.OK else [False]
     
     @staticmethod
     def getFunction(funcType: ManipulationFunctionType):
