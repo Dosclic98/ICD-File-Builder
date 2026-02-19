@@ -31,7 +31,7 @@ class ManipulationFunction:
             # Distribute equall over numOut outputs
             if numOut <= 0:
                 raise ValueError("numOut must be a positive integer.")
-            return sum(values) / numOut
+            return values / numOut
     
     @staticmethod
     def serviceToHealth(value, isInverse: bool = False):
