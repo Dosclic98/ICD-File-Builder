@@ -14,15 +14,24 @@ class ManipulationFunctionType(Enum):
 class ManipulationFunction:
 
     @staticmethod
-    def direct(value):
-        if type(value) in [list] and len(value) == 1:
-            return value[0]
+    def direct(value, isInverse: bool = False):
+        if not isInverse:
+            if type(value) in [list] and len(value) == 1:
+                return value[0]
+            else:
+                raise ValueError("Direct manipulation function expects a list of size 1 as input.")
         else:
-            raise ValueError("Direct manipulation function expects a list of size 1 as input.")
+            return [value]
 
     @staticmethod
-    def sum(values: list[Union[int, float]]) -> Union[int, float]:
-        return sum(values)
+    def sum(values: Union[int, float] | list[Union[int, float]], isInverse: bool = False, numOut: int = 1) -> Union[int, float] | list[Union[int, float]]:
+        if not isInverse:
+            return sum(values)
+        else:
+            # Distribute equall over numOut outputs
+            if numOut <= 0:
+                raise ValueError("numOut must be a positive integer.")
+            return sum(values) / numOut
     
     @staticmethod
     def serviceToHealth(value, isInverse: bool = False):
