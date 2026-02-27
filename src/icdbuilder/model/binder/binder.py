@@ -171,7 +171,7 @@ class PandapowerBinder(Binder):
     
     def _buildPerTypeBindings(split: Split, bindings: list[Binding]) -> list[Binding]:
         # Adding total active power per generation type binding
-        genTypes = [GenType.PV, GenType.WIND, GenType.THERMAL]
+        genTypes = [GenType.PV, GenType.WIND, GenType.THERMAL, GenType.HYDRO]
         for genType in genTypes:
             genUnitrOfType = split.genGenUnitsPerType(genType)
             
@@ -184,8 +184,10 @@ class PandapowerBinder(Binder):
                 genTypeStr = "GenPV"
             elif genType == GenType.WIND:
                 genTypeStr = "GenWi"
-            else:
+            elif genType == GenType.THERMAL:
                 genTypeStr = "GenTer"
+            else:
+                genTypeStr = "GenIdr"
             dataAttributePath = perGenTypeTotPTemplate.format(genType=genTypeStr)
             timeAttributePath = perGenTypeTotPTimeTemplate.format(genType=genTypeStr)
             binding = PandapowerBinding(BindingType.MONITOR, dataAttributePath, timeAttributePath,
