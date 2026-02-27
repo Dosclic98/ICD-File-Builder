@@ -105,6 +105,8 @@ class PandapowerBinder(Binder):
         
         bindings = PandapowerBinder._buildPerTypeBindings(split, bindings)
 
+        bindings = PandapowerBinder._buildAvailabilityBindings(split, bindings)
+
         bindings = PandapowerBinder._buildSetpointBindings(split, bindings)
 
         return bindings
@@ -199,6 +201,50 @@ class PandapowerBinder(Binder):
         components: list[PandapowerComponent] = [PandapowerComponent(True, PandapowerElementType.STORAGE, stoUnit.id, "p_mw", 6, 3) for id, stoUnit in stoUnits.items()] 
         binding = PandapowerBinding(BindingType.MONITOR, stoTotPStr, stoToPTimeStr, components, ManipulationFunctionType.SUM, 0.0)
         bindings.append(binding)
+
+        return bindings
+
+    @staticmethod
+    def _buildAvailabilityBindings(split: Split, bindings: list[Binding]) -> list[Binding]:
+        genEligibleCount = sum(
+            1 for gen in split.generationUnits.values()
+            if gen.installedCapacityKw >= Split.powerGenTresholdKw
+        )
+        stoEligibleCount = sum(
+            1 for sto in split.storageUnits.values()
+            if sto.maxPowerKw >= Split.powerStoTresholdKw
+        )
+
+        genAvailDefault = 1 if genEligibleCount > 0 else 5
+        stoAvailDefault = 1 if stoEligibleCount > 0 else 5
+        plantAvailDefault = 1 if (genEligibleCount + stoEligibleCount) > 0 else 5
+
+        bindings.append(PandapowerBinding(
+            BindingType.MONITOR,
+            genAvailStr,
+            genAvailTimeStr,
+            [],
+            ManipulationFunctionType.DIRECT,
+            genAvailDefault
+        ))
+
+        bindings.append(PandapowerBinding(
+            BindingType.MONITOR,
+            stoAvailStr,
+            stoAvailTimeStr,
+            [],
+            ManipulationFunctionType.DIRECT,
+            stoAvailDefault
+        ))
+
+        bindings.append(PandapowerBinding(
+            BindingType.MONITOR,
+            plantAvailStr,
+            plantAvailTimeStr,
+            [],
+            ManipulationFunctionType.DIRECT,
+            plantAvailDefault
+        ))
 
         return bindings
     

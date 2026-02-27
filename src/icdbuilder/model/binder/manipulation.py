@@ -40,7 +40,7 @@ class ManipulationFunction:
             return HealthType.OK.value if value else HealthType.ALARM.value
         else:
             return [True] if value == HealthType.OK else [False]
-    
+
     @staticmethod
     def getFunction(funcType: ManipulationFunctionType):
         if funcType == ManipulationFunctionType.DIRECT:

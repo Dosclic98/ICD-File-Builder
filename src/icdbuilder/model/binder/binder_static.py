@@ -8,6 +8,14 @@ singleGenMeasTimeTemplate = "LD_Plant$SGGMMXU{inst}$MX$TotW$t"
 singleGenIdTemplate = "LD_Plant$SSGGDGEN{inst}$ST$GnGrId$stVal"
 singleGenIdTimeTemplate = "LD_Plant$SSGGDGEN{inst}$ST$GnGrId$t"
 
+# Availability templates for installation and macro-groups
+plantAvailStr = "LD_Plant$DisFRDECP1$ST$Beh$stVal"
+plantAvailTimeStr = "LD_Plant$DisFRDECP1$ST$Beh$t"
+genAvailStr = "LD_Plant$DisFRDGEN1$ST$Beh$stVal"
+genAvailTimeStr = "LD_Plant$DisFRDGEN1$ST$Beh$t"
+stoAvailStr = "LD_Plant$DisFRDSTO1$ST$Beh$stVal"
+stoAvailTimeStr = "LD_Plant$DisFRDSTO1$ST$Beh$t"
+
 # Active power template for per-gen type generation measurement
 perGenTypeTotPTemplate = "LD_Plant${genType}MMXU1$MX$TotW$mag$f"
 perGenTypeTotPTimeTemplate = "LD_Plant${genType}MMXU1$MX$TotW$t"
