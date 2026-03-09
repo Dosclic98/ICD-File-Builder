@@ -138,21 +138,25 @@ class PandapowerBinder(Binder):
             binding = PandapowerBinding(BindingType.MONITOR, pdcTotQStr, pdcTotQTimeStr, totQomponents, ManipulationFunctionType.WEIGHTED_SUM, 0.0)
             bindings.append(binding)
             lines: dict[int, Line] = split.getLines()
-            for i, line in zip(range(len(lines)), lines.values()):
-                if i >= min(len(pdcVoltAngStrs), len(pdcVoltMagStrs)) or i >= len(pdcCurrMagStrs):
-                    raise logging.warning(f"Line id {line.id} exceeds the number of available data attributes")
-                else:
-                    # Adding line voltages @ PdC (we get them from the lines connected to the bus)
-                    componentMag = PandapowerComponent(True, PandapowerElementType.LINE, line.id, "vm_from_pu", 1, 1) 
-                    bindingMag = PandapowerBinding(BindingType.MONITOR, pdcVoltMagStrs[i], pdcVoltMagTimeStrs[i], [componentMag], ManipulationFunctionType.SUM, 0.0)
-                    componentAng = PandapowerComponent(True, PandapowerElementType.LINE, line.id, "va_from_degree", 1, 1)
-                    bindingAng = PandapowerBinding(BindingType.MONITOR, pdcVoltAngStrs[i], pdcVoltAngTimeStrs[i], [componentAng], ManipulationFunctionType.SUM, 0.0)
-                    bindings.append(bindingMag)
-                    bindings.append(bindingAng)
-                    # Adding line currents @ PdC (we get them from the lines connected to the bus and we must convert them from kA to A)
-                    componentCurr = PandapowerComponent(True, PandapowerElementType.LINE, line.id, "i_ka", 3, 1) 
-                    bindingCurr = PandapowerBinding(BindingType.MONITOR, pdcCurrMagStrs[i], pdcCurrMagTimeStrs[i], [componentCurr], ManipulationFunctionType.SUM, 0.0)
-                    bindings.append(bindingCurr)
+            if len(lines) == 0:
+                logging.warning("No lines connected to the main bus, skipping line-related bindings at PdC.")
+            
+            # Get the first line and replicate the voltage magnitude, angle and current bindings for the three phases
+            firstKey = next(iter(lines))
+            line = lines[firstKey]
+            for i in range(min(len(pdcVoltAngStrs), len(pdcVoltMagStrs), len(pdcCurrMagStrs))):
+                # Adding line voltages @ PdC (we get them from the lines connected to the bus)
+                # TODO: These should be converted to phase-to-phase voltages and angles!
+                componentMag = PandapowerComponent(True, PandapowerElementType.LINE, line.id, "vm_from_pu", 1, 1) 
+                bindingMag = PandapowerBinding(BindingType.MONITOR, pdcVoltMagStrs[i], pdcVoltMagTimeStrs[i], [componentMag], ManipulationFunctionType.SUM, 0.0)
+                componentAng = PandapowerComponent(True, PandapowerElementType.LINE, line.id, "va_from_degree", 1, 1)
+                bindingAng = PandapowerBinding(BindingType.MONITOR, pdcVoltAngStrs[i], pdcVoltAngTimeStrs[i], [componentAng], ManipulationFunctionType.SUM, 0.0)
+                bindings.append(bindingMag)
+                bindings.append(bindingAng)
+                # Adding line currents @ PdC (we get them from the lines connected to the bus and we must convert them from kA to A)
+                componentCurr = PandapowerComponent(True, PandapowerElementType.LINE, line.id, "i_ka", 3, 1) 
+                bindingCurr = PandapowerBinding(BindingType.MONITOR, pdcCurrMagStrs[i], pdcCurrMagTimeStrs[i], [componentCurr], ManipulationFunctionType.SUM, 0.0)
+                bindings.append(bindingCurr)
 
         return bindings
         

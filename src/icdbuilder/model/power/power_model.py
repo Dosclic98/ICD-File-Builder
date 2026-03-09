@@ -292,7 +292,6 @@ class Split:
                 split.setSplitMethod(SplitMethod.BUS)
                 split.addBus(bus)
                 for line in powerModel.lines.values():
-                    # Add lines whose bus is in the direction of HV
                     if line.fromBusId == bus.id:
                         split.addLine(line)
 
