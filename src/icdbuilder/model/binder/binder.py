@@ -37,13 +37,15 @@ class PandapowerElementType(Enum):
 # Component representation for pandapower measurements / controllable elements
 # Each component maps a pandapower element attribute (both in terms of result and setpoint) to/from an IEC61850 data attribute
 class PandapowerComponent:
-    def __init__(self, isResult: bool, elementType: PandapowerElementType, elementId: int, attribute: str, sourceExponent: int, destExponent: int):
+    def __init__(self, isResult: bool, elementType: PandapowerElementType, elementId: int, attribute: str,
+                 sourceExponent: int, destExponent: int, weight: float = 1.0):
         self.isResult = isResult
         self.elementType = elementType
         self.elementId = elementId
         self.attribute = attribute
         self.sourceExponent = sourceExponent
         self.destExponent = destExponent
+        self.weight = weight
 
     def __dict__(self):
         return {
@@ -52,11 +54,12 @@ class PandapowerComponent:
             "elementId": self.elementId,
             "attribute": self.attribute,
             "sourceExponent": self.sourceExponent,
-            "destExponent": self.destExponent
+            "destExponent": self.destExponent,
+            "weight": self.weight
         }
     
     def __str__(self):
-        return f"PandapowerComponent(isResult={self.isResult}, elementType={self.elementType}, elementId={self.elementId}, attribute={self.attribute}, sourceExponent={self.sourceExponent}, destExponent={self.destExponent})"
+        return f"PandapowerComponent(isResult={self.isResult}, elementType={self.elementType}, elementId={self.elementId}, attribute={self.attribute}, sourceExponent={self.sourceExponent}, destExponent={self.destExponent}, weight={self.weight})"
 
 # Each binding represents a mapping between a IEC61850 data attribute and a list of pandapower components 
 # that can be monitored or controlled. The elements are combined using a specified manipulation function.
@@ -115,13 +118,24 @@ class PandapowerBinder(Binder):
     def _buildPdCBindings(split: Split, bindings: list[Binding]) -> list[Binding]:
         mainBus = split.getMainBus()
         if mainBus is not None:
-            # Adding TotW @ PdC binding (we get it from the corresponding bus and we must convert it from kW to MW)
-            component = PandapowerComponent(True, PandapowerElementType.BUS, mainBus.id, "p_mw", 6, 3)
-            binding = PandapowerBinding(BindingType.MONITOR, pdcTotPStr, pdcTotPTimeStr, [component], ManipulationFunctionType.SUM, 0.0)
+            # TotW/TotVAr at PdC from generators and storage only.
+            # Component weight is an orientation sign: +1 positive contribution, -1 negative contribution.
+            totPcomponents: list[PandapowerComponent] = []
+            totQomponents: list[PandapowerComponent] = []
+            for gen in split.generationUnits.values():
+                componentP = PandapowerComponent(True, PandapowerElementType.GEN, gen.id, "p_mw", 6, 3, weight=1.0)
+                componentQ = PandapowerComponent(True, PandapowerElementType.GEN, gen.id, "q_mvar", 6, 3, weight=1.0)
+                totPcomponents.append(componentP)
+                totQomponents.append(componentQ)
+            for sto in split.storageUnits.values():
+                componentP = PandapowerComponent(True, PandapowerElementType.STORAGE, sto.id, "p_mw", 6, 3, weight=-1.0)
+                componentQ = PandapowerComponent(True, PandapowerElementType.STORAGE, sto.id, "q_mvar", 6, 3, weight=-1.0)
+                totPcomponents.append(componentP)
+                totQomponents.append(componentQ)
+            binding = PandapowerBinding(BindingType.MONITOR, pdcTotPStr, pdcTotPTimeStr, totPcomponents, ManipulationFunctionType.WEIGHTED_SUM, 0.0)
             bindings.append(binding)
-            # Adding TotQ @ PdC binding (we get it from the corresponding bus and we must convert it from kW to MW)
-            component = PandapowerComponent(True, PandapowerElementType.BUS, mainBus.id, "q_mvar", 6, 3)
-            binding = PandapowerBinding(BindingType.MONITOR, pdcTotQStr, pdcTotQTimeStr, [component], ManipulationFunctionType.SUM, 0.0)
+            # Adding TotQ @ PdC binding (it's the total active power from generation and storage units and we must convert it from kW to MW)
+            binding = PandapowerBinding(BindingType.MONITOR, pdcTotQStr, pdcTotQTimeStr, totQomponents, ManipulationFunctionType.WEIGHTED_SUM, 0.0)
             bindings.append(binding)
             lines: dict[int, Line] = split.getLines()
             for i, line in zip(range(len(lines)), lines.values()):
