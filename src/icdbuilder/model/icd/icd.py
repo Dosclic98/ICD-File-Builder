@@ -83,11 +83,11 @@ class ICDBuilder:
         plantLD.append(ET.fromstring(phyDevInfos))
         # TODO: Check with Geert!
         ICDBuilder._appendMultipleElements(plantLD, plantChar.format(
-            maxGenP = split.getMaxGenerationCapacityKw(),
-            maxAbsP = split.getMaxGenerationCapacityKw(),
-            maxIndQ = split.getMaxReactivePowerKw(),
-            maxCapQ = split.getMaxReactivePowerKw(),
-            maxS = split.getMaxNominalPowerKw()
+            maxGenP = split.getMaxGenPowerKw(),
+            maxAbsP = split.getMaxAbsPowerKw(),
+            maxIndQ = split.getMaxInductivePowerKvar(),
+            maxCapQ = split.getMaxCapacitivePowerKvar(),
+            maxS = split.getMaxApparentPowerKva()
         ))
         ICDBuilder._appendMultipleElements(plantLD, ctrlFunAvail)
         ICDBuilder._appendMultipleElements(plantLD, measAvailPerGroup)

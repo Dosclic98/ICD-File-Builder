@@ -208,11 +208,11 @@ class PandapowerBinder(Binder):
     def _buildAvailabilityBindings(split: Split, bindings: list[Binding]) -> list[Binding]:
         genEligibleCount = sum(
             1 for gen in split.generationUnits.values()
-            if gen.installedCapacityKw >= Split.powerGenTresholdKw
+            if gen.getMaxActivePowerKw() >= Split.powerGenTresholdKw
         )
         stoEligibleCount = sum(
             1 for sto in split.storageUnits.values()
-            if sto.maxPowerKw >= Split.powerStoTresholdKw
+            if sto.getMaxActivePowerKw() >= Split.powerStoTresholdKw
         )
 
         genAvailDefault = 1 if genEligibleCount > 0 else 5

@@ -1,5 +1,6 @@
 from enum import Enum
 from dataclasses import dataclass
+import math
 from pandapower import pandapowerNet
 
 class GenType(Enum):
@@ -33,21 +34,50 @@ class GenerationUnit:
     name: str
     busId: int
     genType: GenType
-    installedCapacityKw: float
+    maxApparentPowerKva: float
+
+    def getMaxActivePowerKw(self, powerFactor: float = 0.95) -> float:
+        return self.maxApparentPowerKva * powerFactor
+    
+    def getMaxReactivePowerKvar(self, powerFactor: float = 0.95) -> float:
+        return (self.maxApparentPowerKva**2 - (self.maxApparentPowerKva * powerFactor)**2)**0.5
 
 @dataclass
 class StorageUnit:
     id: int
     name: str
     busId: int
-    capacityKwh: float
-    maxPowerKw: float
+    activePowerKw: float
+    reactivePowerKvar: float
+    maxApparentPowerKva: float
+
+    def getMaxActivePowerKw(self, powerFactor: float = 0.95) -> float:
+        return self.maxApparentPowerKva * powerFactor
+
+    def getMaxReactivePowerKvar(self, powerFactor: float = 0.95) -> float:
+        return (self.maxApparentPowerKva**2 - (self.maxApparentPowerKva * powerFactor)**2)**0.5
+
+@dataclass
+class Load:
+    id: int
+    name: str
+    busId: int
+    activePowerKw: float
+    reactivePowerKvar: float
+    maxApparentPowerKva: float
+
+    def getMaxActivePowerKw(self, powerFactor: float = 0.95) -> float:
+        return self.maxApparentPowerKva * powerFactor
+    
+    def getMaxReactivePowerKvar(self, powerFactor: float = 0.95) -> float:
+        return (self.maxApparentPowerKva**2 - (self.maxApparentPowerKva * powerFactor)**2)**0.5
 
 class PowerModel:
     def __init__(self):
         self.buses: dict = {}
         self.generationUnits: dict = {}
         self.storageUnits: dict = {}
+        self.loads: dict = {}
         self.lines: dict = {}
     
     def addBus(self, id: int, name: str, voltageLevelKv: float):
@@ -60,15 +90,25 @@ class PowerModel:
             raise NonExistingBusException(toBusId)
         self.lines[id] = Line(id, name, fromBusId, toBusId, maxCurrentKA)
     
-    def addGenerationUnit(self, id: int, name: str, busId: int, genType: GenType, installedCapacityKw: float):
+    def addGenerationUnit(self, id: int, name: str, busId: int, genType: GenType, maxApparentPowerKva: float):
         if busId not in self.buses.keys():
             raise NonExistingBusException(busId)
-        self.generationUnits[id] = GenerationUnit(id, name, busId, genType, installedCapacityKw)
+        self.generationUnits[id] = GenerationUnit(id, name, busId, genType, maxApparentPowerKva)
 
-    def addStorageUnit(self, id: int, name: str, busId: int, capacityKwh: float, maxPowerKw: float):
+    def addStorageUnit(self, id: int, name: str, busId: int, activePowerKw: float, reactivePowerKvar: float, maxApparentPowerKva: float = None):
         if busId not in self.buses.keys():
             raise NonExistingBusException(busId)
-        self.storageUnits[id] = StorageUnit(id, name, busId, capacityKwh, maxPowerKw)
+        
+        if maxApparentPowerKva is None:
+            maxApparentPowerKva = (activePowerKw**2 + reactivePowerKvar**2)**0.5
+        self.storageUnits[id] = StorageUnit(id, name, busId, activePowerKw, reactivePowerKvar, maxApparentPowerKva=maxApparentPowerKva)
+    
+    def addLoad(self, id: int, name: str, busId: int, activePowerKw: float, reactivePowerKvar: float, maxApparentPowerKva: float = None):
+        if busId not in self.buses.keys():
+            raise NonExistingBusException(busId)
+        if maxApparentPowerKva is None:
+            maxApparentPowerKva = (activePowerKw**2 + reactivePowerKvar**2)**0.5
+        self.loads[id] = Load(id, name, busId, activePowerKw, reactivePowerKvar, maxApparentPowerKva=maxApparentPowerKva)
 
     def __str__(self):
         # Print each element in a different line
@@ -115,7 +155,7 @@ class PowerModel:
                 name=gen["name"],
                 busId=gen["bus"],
                 genType=genType,
-                installedCapacityKw=gen["p_mw"] * 1000  # Convert MVA to kW
+                maxApparentPowerKva=gen["sn_mva"] * 1000  # Convert MVA to kVA
             )
 
         for i in range(len(network.storage)):
@@ -124,18 +164,30 @@ class PowerModel:
                 id=i,
                 name=storage["name"],
                 busId=storage["bus"],
-                capacityKwh=storage["max_e_mwh"] * 1000,  # Convert MWh to kWh
-                maxPowerKw=storage["p_mw"] * 1000  # Convert MW to kW
+                activePowerKw=storage["p_mw"] * 1000,  # Convert MW to kW
+                reactivePowerKvar=storage["q_mvar"] * 1000,  # Convert MVar to kVar
+                maxApparentPowerKva=storage["sn_mva"] * 1000  # Convert MVA to kVA
+            )
+
+        for i in range(len(network.load)):
+            load = network.load.iloc[i]
+            model.addLoad(
+                id=i,
+                name=load["name"],
+                busId=load["bus"],
+                activePowerKw=load["p_mw"] * 1000,  # Convert MW to kW
+                reactivePowerKvar=load["q_mvar"] * 1000,  # Convert MVar to kVar
+                maxApparentPowerKva=load["sn_mva"] * 1000  # Convert MVA to kVA
             )
 
         return model
         
 class SplitMethod(Enum):
     BUS = "bus"
-    UNIT = "unit"
 
 class Split:
-    # Tresholds according to 
+    # Tresholds according to CEI 0-16
+    powerGenTresholdAllKw: float = 1000
     powerGenTresholdKw: float = 100
     powerStoTresholdKw: float = 50
 
@@ -168,28 +220,46 @@ class Split:
         if storageUnit.busId not in self.buses.keys():
             raise NonExistingBusException(storageUnit.busId)
         self.storageUnits[storageUnit.id] = storageUnit
+    
+    # Get the maximum active power that can be absorbed
+    def getMaxAbsPowerKw(self, powerFactor: float = 0.95) -> float:
+        totalAbsPowerKw: float = sum(storage.getMaxActivePowerKw(powerFactor) for storage in self.storageUnits.values())
+        return totalAbsPowerKw
+    
+    # Get the maximum active power that can be generated
+    def getMaxGenPowerKw(self, powerFactor: float = 0.95) -> float:
+        totalImmPowerKw: float = sum(gen.getMaxActivePowerKw(powerFactor) for gen in self.generationUnits.values())
+        return totalImmPowerKw
+    
+    def getMaxInductivePowerKvar(self, powerFactor: float = 0.95) -> float:
+        # Inductive support is the aggregated positive reactive capability.
+        genQ: float = sum(gen.getMaxReactivePowerKvar(powerFactor) for gen in self.generationUnits.values())
+        stoQ: float = sum(storage.getMaxReactivePowerKvar(powerFactor) for storage in self.storageUnits.values())
+        return genQ + stoQ
 
-    def getMaxGenerationCapacityKw(self) -> float:
-        totalCapacityKw: float = 0.0
-        for gen in self.generationUnits.values():
-            totalCapacityKw += gen.installedCapacityKw
-        return totalCapacityKw
-    
-    def getMaxReactivePowerKw(self, powerFactor: float = 0.95) -> float:
-        totalReactivePowerKw: float = self.getMaxGenerationCapacityKw() * ((1-powerFactor**2)**0.5 / powerFactor)
-        
-        return totalReactivePowerKw
-    
-    def getMaxNominalPowerKw(self) -> float:
-        totalPowerKw: float = (self.getMaxGenerationCapacityKw()**2 + self.getMaxReactivePowerKw()**2)**0.5
-        return totalPowerKw
+    def getMaxCapacitivePowerKvar(self, powerFactor: float = 0.95) -> float:
+        # With symmetric Q capability assumptions, capacitive and inductive magnitudes are equal.
+        return self.getMaxInductivePowerKvar(powerFactor)
+
+    def getMaxReactivePowerKvar(self, powerFactor: float = 0.95) -> float:
+        return self.getMaxInductivePowerKvar(powerFactor)
+
+    def getMaxApparentPowerKva(self) -> float:
+        maxImmP = self.getMaxGenPowerKw()
+        maxAssP = self.getMaxAbsPowerKw()
+        maxIndQ = self.getMaxInductivePowerKvar()
+        maxCapQ = self.getMaxCapacitivePowerKvar()
+
+        # CEI 0-16 conventional base power at PdC:
+        # Smax = sqrt(max(Pimm^2, Pass^2) + max(Qind^2, Qcap^2))
+        return math.sqrt(max(maxImmP**2, maxAssP**2) + max(maxIndQ**2, maxCapQ**2))
     
     def getObsGenUnits(self) -> dict[int, (int, GenerationUnit)]:
         # Return only the generation units whose active power surpasses the observability treshold
         obsGenUnits: dict[int, GenerationUnit] = {}
         i = 1
         for id, gen in self.generationUnits.items():
-            if gen.installedCapacityKw >= Split.powerGenTresholdKw:
+            if gen.getMaxActivePowerKw() >= Split.powerGenTresholdKw:
                 obsGenUnits[id] = (i, gen)
                 i += 1
         return obsGenUnits
@@ -226,47 +296,30 @@ class Split:
                     if line.fromBusId == bus.id:
                         split.addLine(line)
 
-                existsValidGen = False
                 for gen in powerModel.generationUnits.values():
                     if gen.busId == bus.id:
-                        if gen.installedCapacityKw >= Split.powerGenTresholdKw:
-                            existsValidGen = True
                         split.addGenerationUnit(gen)
 
-                existsValidSto = False
                 for storage in powerModel.storageUnits.values():
                     if storage.busId == bus.id:
-                        if storage.maxPowerKw >= Split.powerStoTresholdKw:
-                            existsValidSto = True
                         split.addStorageUnit(storage)
 
-                if existsValidGen or existsValidSto:
+                # A CCI must be installed only if the aggregated nominal power of per generation types surpasses 1000kW
+                # For PV and Wind unit the treshold is 100kW 
+                isInstalled = False
+                for genType in GenType:
+                    genUnitsPerType = split.genGenUnitsPerType(genType)
+                    if genType in [GenType.PV, GenType.WIND]:
+                        if sum(gen.getMaxActivePowerKw() for gen in genUnitsPerType.values()) >= Split.powerGenTresholdKw:
+                            isInstalled = True
+                    else:
+                        if sum(gen.getMaxActivePowerKw() for gen in genUnitsPerType.values()) >= Split.powerGenTresholdAllKw:
+                            isInstalled = True
+                if isInstalled:
                     splits.append(split)
 
-        elif splitMethod == SplitMethod.UNIT:
-            for gen in powerModel.generationUnits.values():
-                if gen.installedCapacityKw >= Split.powerGenTresholdKw:    
-                    split = Split(name=f"CCI_Gen_{gen.id}")
-                    split.setSplitMethod(SplitMethod.UNIT)
-                    split.addBus(powerModel.buses[gen.busId])
-                    split.addGenerationUnit(gen)
-                    splits.append(split)
-
-            for storage in powerModel.storageUnits.values():
-                if storage.maxPowerKw >= Split.powerStoTresholdKw:
-                    split = Split(name=f"CCI_Storage_{storage.id}")
-                    split.setSplitMethod(SplitMethod.UNIT)
-                    split.addBus(powerModel.buses[storage.busId])
-                    split.addStorageUnit(storage)
-                    splits.append(split)
-
-            # Add lines of the present busses in each split
-            for split in splits:
-                # Add lines whose bus is in the direction of HV
-                for bus in split.buses.values():
-                    for line in powerModel.lines.values():
-                        if line.fromBusId == bus.id:
-                            split.addLine(line)
+        else:
+            raise NotImplementedError(f"Split method {splitMethod} not implemented yet.")
 
         return splits
     
