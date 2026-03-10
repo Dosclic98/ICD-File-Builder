@@ -266,15 +266,41 @@ class PandapowerBinder(Binder):
 
         return bindings
     
-    # TODO: This function is still not fully correct since it should return a % of Smax and not the actual current sum of generators reactive power
     def _buildSetpointBindings(split: Split, bindings: list[Binding]) -> list[Binding]:
         genUnits = split.generationUnits
+        maxApparentPowerKva = split.getMaxApparentPowerKva()
+        if maxApparentPowerKva > 0:
+            # Convert aggregated reactive power [kVAr] to percentage of Smax [kVA].
+            reactivePctScalingFactor = 100.0 / maxApparentPowerKva
+        else:
+            logging.warning(
+                "Split %s has non-positive Smax; reactive setpoint bindings keep unitary scaling.",
+                split.name,
+            )
+            reactivePctScalingFactor = 1.0
+
         # Add read-only reactive power setpoint
         componentsRO = [PandapowerComponent(True, PandapowerElementType.SGEN, id, "q_mvar", 6, 3) for id, gen in genUnits.items()]
-        bindingRO = PandapowerBinding(BindingType.MONITOR, qSetReadStr, qSetReadTimeStr, componentsRO, ManipulationFunctionType.SUM, 0.0)
+        bindingRO = PandapowerBinding(
+            BindingType.MONITOR,
+            qSetReadStr,
+            qSetReadTimeStr,
+            componentsRO,
+            ManipulationFunctionType.WEIGHTED_SUM,
+            0.0,
+            scalingFactor=reactivePctScalingFactor,
+        )
         # Add write-only reactive power setpoint
-        componentsWO = [PandapowerComponent(False, PandapowerElementType.SGEN, id, "q_mvar", 6, 3) for id, gen in genUnits.items()]
-        bindingWO = PandapowerBinding(BindingType.CONTROL, qSetWriteStr, qSetWriteTimeStr, componentsWO, ManipulationFunctionType.SUM, 0.0)
+        componentsWO = [PandapowerComponent(True, PandapowerElementType.SGEN, id, "q_mvar", 6, 3) for id, gen in genUnits.items()]
+        bindingWO = PandapowerBinding(
+            BindingType.CONTROL,
+            qSetWriteStr,
+            qSetWriteTimeStr,
+            componentsWO,
+            ManipulationFunctionType.WEIGHTED_SUM,
+            0.0,
+            scalingFactor=reactivePctScalingFactor,
+        )
 
         bindings.append(bindingRO)
         bindings.append(bindingWO)
