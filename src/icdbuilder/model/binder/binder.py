@@ -123,8 +123,8 @@ class PandapowerBinder(Binder):
             totPcomponents: list[PandapowerComponent] = []
             totQomponents: list[PandapowerComponent] = []
             for gen in split.generationUnits.values():
-                componentP = PandapowerComponent(True, PandapowerElementType.GEN, gen.id, "p_mw", 6, 3, weight=1.0)
-                componentQ = PandapowerComponent(True, PandapowerElementType.GEN, gen.id, "q_mvar", 6, 3, weight=1.0)
+                componentP = PandapowerComponent(True, PandapowerElementType.SGEN, gen.id, "p_mw", 6, 3, weight=1.0)
+                componentQ = PandapowerComponent(True, PandapowerElementType.SGEN, gen.id, "q_mvar", 6, 3, weight=1.0)
                 totPcomponents.append(componentP)
                 totQomponents.append(componentQ)
             for sto in split.storageUnits.values():
