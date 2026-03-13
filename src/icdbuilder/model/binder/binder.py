@@ -169,7 +169,7 @@ class PandapowerBinder(Binder):
             component = PandapowerComponent(False, PandapowerElementType.SGEN, gen.id, "in_service", 1, 1)
             dataAttributePath = singleGenHealthTemplate.format(inst=index)
             timeAttributePath = singleGenHealthTimeTemplate.format(inst=index)
-            binding = PandapowerBinding(BindingType.BOTH, dataAttributePath, timeAttributePath,
+            binding = PandapowerBinding(BindingType.MONITOR, dataAttributePath, timeAttributePath,
                                         [component], ManipulationFunctionType.S2H, HealthType.OK.value)
             bindings.append(binding)
 
