@@ -6,6 +6,15 @@ class HealthType(Enum):
     WARNING = 2
     ALARM = 3
 
+class ModeType(Enum):
+    ON = 1
+    OFF = 5
+
+class DerFunStateType(Enum):
+    NOT_AVAILABLE = 0
+    AUTONOMOUS = 1
+    SLAVE = 2
+
 class ManipulationFunctionType(Enum):
     DIRECT = "direct" 
     SUM = "sum"

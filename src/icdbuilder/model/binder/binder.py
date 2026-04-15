@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from icdbuilder.model.power import Split, GenType, StorageUnit, Line
 from icdbuilder.model.binder.binder_static import *
-from icdbuilder.model.binder.manipulation import ManipulationFunction, ManipulationFunctionType, HealthType
+from icdbuilder.model.binder.manipulation import ManipulationFunction, ManipulationFunctionType, HealthType, ModeType, DerFunStateType
 from types import FunctionType
 import json, logging
 
@@ -90,6 +90,20 @@ class PandapowerBinding(Binding):
     def __str__(self):
         return f"PandapowerBinding(splitName={self.splitName}, bindingType={self.bindingType}, dataAttributePath={self.dataAttributePath}, timestampAttributePath={self.timestampAttributePath}, components=[{', '.join(str(m) for m in self.components)}], combFunction={self.combFunction}, defaultValue={self.defaultValue}, scalingFactor={self.scalingFactor})"
 
+# The aggregator binding is a special type of binding used to interact with 
+# the RSE power simulator (components and combFunction are not used here)
+class AggregatorBinding(Binding):
+    def __init__(self, bindingType: BindingType, dataAttributePath: str, timestampAttributePath: str, defaultValue):
+        super().__init__(bindingType, dataAttributePath, timestampAttributePath)
+        self.defaultValue = defaultValue
+
+    def __dict__(self):
+        return {
+            "bindingType": self.bindingType.value,
+            "dataAttributePath": self.dataAttributePath,
+            "timestampAttributePath": self.timestampAttributePath,
+            "defaultValue": self.defaultValue
+        }
 
 class Binder(ABC):
 
@@ -306,3 +320,71 @@ class PandapowerBinder(Binder):
         bindings.append(bindingWO)
 
         return bindings
+
+class AggregatorBinder(Binder):
+    # Does not need the split parameter since it does not build the components array
+    @staticmethod
+    def buildBindings() -> list[AggregatorBinding]:
+        bindings: list[AggregatorBinding] = []
+        bindings = AggregatorBinder._buildPdCBindings(bindings)
+        bindings = AggregatorBinder._buildSetpointBindings(bindings)
+        
+
+        return bindings
+    
+    def _buildPdCBindings(bindings: list[Binding]) -> list[Binding]:
+        # Adding total active power at PdC from the RSE power simulator
+        binding = AggregatorBinding(BindingType.MONITOR, pdcTotPStr, pdcTotPTimeStr, 0.0)
+        bindings.append(binding)
+        # Adding total reactive power at PdC from the RSE power simulator
+        binding = AggregatorBinding(BindingType.MONITOR, pdcTotQStr, pdcTotQTimeStr, 0.0)
+        bindings.append(binding)
+
+        return bindings
+    
+    #def _buildAvailabilityBindings(bindings: list[Binding]) -> list[Binding]:
+
+        
+        
+    def _buildSetpointBindings(bindings: list[Binding]) -> list[Binding]:
+        # Add read-only and write-only reactive power setpoint at PdC
+        bindingQRO = AggregatorBinding(BindingType.MONITOR, aggQSetReadStr, aggQSetReadTimeStr, 0.0)
+        bindingQWO = AggregatorBinding(BindingType.CONTROL, aggQSetWriteStr, aggQSetWriteTimeStr, 0.0)
+        # Add read-only and write-only mode parameter for reactive power control function at PdC
+        bindingModRO = AggregatorBinding(BindingType.MONITOR, dvarModReadStr, dvarModReadTimeStr, ModeType.ON.value)
+        bindingModWO = AggregatorBinding(BindingType.CONTROL, dvarModWriteStr, dvarModWriteTimeStr, ModeType.ON.value)
+        # Add read-only parameter for health state of the reactive power control function at PdC (we don't need a write operation for this parameter since it's an output)
+        bindingHealthRO = AggregatorBinding(BindingType.MONITOR, dvarHealthReadStr, dvarHealthReadTimeStr, HealthType.OK.value)
+        # Add read-only function operational status of the reactive power control function at PdC (we don't need a write operation for this parameter since it's an output)
+        bindingFctOpStRO = AggregatorBinding(BindingType.MONITOR, dvarFctOpStReadStr, dvarFctOpStReadTimeStr, DerFunStateType.SLAVE.value)
+
+        # Add read-only active power setpoint at PdC from the RSE power simulator
+        bindingPRO = AggregatorBinding(BindingType.MONITOR, aggPSetReadStr, aggPSetReadTimeStr, 0.0)
+        # Add write-only active power setpoint at PdC for the RSE power simulator
+        bindingPWO = AggregatorBinding(BindingType.CONTROL, aggPSetWriteStr, aggPSetWriteTimeStr, 0.0)
+        # Add read-only and write-only mode parameter for active power control function at PdC
+        bindingPModRO = AggregatorBinding(BindingType.MONITOR, dagcModReadStr, dagcModReadTimeStr, ModeType.ON.value)
+        bindingPModWO = AggregatorBinding(BindingType.CONTROL, dagcModWriteStr, dagcModWriteTimeStr, ModeType.ON.value)
+        # Add read-only parameter for health state of the active power control function at PdC (we don't need a write operation for this parameter since it's an output)
+        bindingPHealthRO = AggregatorBinding(BindingType.MONITOR, dagcHealthReadStr, dagcHealthReadTimeStr, HealthType.OK.value)
+        # Add read-only function operational status of the active power control function at PdC (we don't need a write operation for this parameter since it's an output)
+        bindingPFctOpStRO = AggregatorBinding(BindingType.MONITOR, dagcFctOpStReadStr, dagcFctOpStReadTimeStr, DerFunStateType.SLAVE.value)
+
+
+        bindings.append(bindingQRO)
+        bindings.append(bindingQWO)
+        bindings.append(bindingModRO)
+        bindings.append(bindingModWO)
+        bindings.append(bindingHealthRO)
+        bindings.append(bindingFctOpStRO)
+
+        bindings.append(bindingPRO)
+        bindings.append(bindingPWO)
+        bindings.append(bindingPModRO)
+        bindings.append(bindingPModWO)
+        bindings.append(bindingPHealthRO)
+        bindings.append(bindingPFctOpStRO)
+
+
+        return bindings
+    

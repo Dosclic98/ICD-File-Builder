@@ -48,3 +48,45 @@ qSetReadStr = "LD_Plant$VArSdDVAR1$VArTgtSptPct$mxVal$f"
 qSetReadTimeStr = "LD_Plant$VArSdDVAR1$VArTgtSptPct$t"
 qSetWriteStr = "LD_Plant$VArSdDVAR1$VArTgtSptPct$Oper$ctlVal$f"
 qSetWriteTimeStr = "LD_Plant$VArSdDVAR1$VArTgtSptPct$Oper$T"
+
+# DAGC1 (WSa prefix): active power control function state and setpoint at aggregator side.
+# Beh: function availability/behavior state (ENS/stVal)
+dagcBehReadStr = "LD_Plant$WSaDAGC1$ST$Beh$stVal"
+dagcBehReadTimeStr = "LD_Plant$WSaDAGC1$ST$Beh$t"
+# Health: logical node health state (ENS/stVal)
+dagcHealthReadStr = "LD_Plant$WSaDAGC1$ST$Health$stVal"
+dagcHealthReadTimeStr = "LD_Plant$WSaDAGC1$ST$Health$t"
+# FctOpSt: function operational status (ENS/stVal)
+dagcFctOpStReadStr = "LD_Plant$WSaDAGC1$ST$FctOpSt$stVal"
+dagcFctOpStReadTimeStr = "LD_Plant$WSaDAGC1$ST$FctOpSt$t"
+# Mod: function activation mode [typically 1=on, 5=off]
+dagcModReadStr = "LD_Plant$WSaDAGC1$ST$Mod$stVal"
+dagcModReadTimeStr = "LD_Plant$WSaDAGC1$ST$Mod$t"
+dagcModWriteStr = "LD_Plant$WSaDAGC1$ST$Mod$Oper$ctlVal$f"
+dagcModWriteTimeStr = "LD_Plant$WSaDAGC1$ST$Mod$Oper$T"
+# WSptPct: active power setpoint in percentage of Smax (APC)
+aggPSetReadStr = "LD_Plant$WSaDAGC1$WSptPct$mxVal$f"
+aggPSetReadTimeStr = "LD_Plant$WSaDAGC1$WSptPct$t"
+aggPSetWriteStr = "LD_Plant$WSaDAGC1$WSptPct$Oper$ctlVal$f"
+aggPSetWriteTimeStr = "LD_Plant$WSaDAGC1$WSptPct$Oper$T"
+
+# DVAR1 (VArSa prefix): reactive power control function state at aggregator side.
+# Reactive power setpoint attributes for Aggregator-reserved DVAR1 (VArSa prefix)
+aggQSetReadStr = "LD_Plant$VArSaDVAR1$VArTgtSptPct$mxVal$f"
+aggQSetReadTimeStr = "LD_Plant$VArSaDVAR1$VArTgtSptPct$t"
+aggQSetWriteStr = "LD_Plant$VArSaDVAR1$VArTgtSptPct$Oper$ctlVal$f"
+aggQSetWriteTimeStr = "LD_Plant$VArSaDVAR1$VArTgtSptPct$Oper$T"
+# Beh: function availability/behavior state (ENS/stVal)
+dvarBehReadStr = "LD_Plant$VArSaDVAR1$ST$Beh$stVal"
+dvarBehReadTimeStr = "LD_Plant$VArSaDVAR1$ST$Beh$t"
+# Health: logical node health state (ENS/stVal)
+dvarHealthReadStr = "LD_Plant$VArSaDVAR1$ST$Health$stVal"
+dvarHealthReadTimeStr = "LD_Plant$VArSaDVAR1$ST$Health$t"
+# FctOpSt: function operational status (ENS/stVal)
+dvarFctOpStReadStr = "LD_Plant$VArSaDVAR1$ST$FctOpSt$stVal"
+dvarFctOpStReadTimeStr = "LD_Plant$VArSaDVAR1$ST$FctOpSt$t"
+# Mod: function activation mode [typically 1=on, 5=off]
+dvarModReadStr = "LD_Plant$VArSaDVAR1$ST$Mod$stVal"
+dvarModReadTimeStr = "LD_Plant$VArSaDVAR1$ST$Mod$t"
+dvarModWriteStr = "LD_Plant$VArSaDVAR1$ST$Mod$Oper$ctlVal$f"
+dvarModWriteTimeStr = "LD_Plant$VArSaDVAR1$ST$Mod$Oper$T"

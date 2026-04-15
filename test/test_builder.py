@@ -1,6 +1,6 @@
 from icdbuilder.utils import create_cigre_network_mv_all_der
 from icdbuilder.model.power import SplitMethod
-from icdbuilder.builder import FromPPToICDBuilder, FromPPToBinderBuilder
+from icdbuilder.builder import FromPPToICDBuilder, FromPPToBinderBuilder, ForAggregatorBinderBuilder
 from pathlib import Path
 
 
@@ -11,4 +11,7 @@ if __name__ == "__main__":
 
     bindingsBuilder = FromPPToBinderBuilder(net)
     bindingsBuilder.build(splitMethod=SplitMethod.BUS, outputPath=Path("output", "bus_split_bindings"))
+
+    aggrBindingsBuilder = ForAggregatorBinderBuilder()
+    aggrBindingsBuilder.build(cciName="CCI_Main", outputPath=Path("output", "aggregator_bindings"))
     

@@ -1,0 +1,108 @@
+# MQTT Communication Logic Overview:
+# -----------------------------
+# - Server-side simulation model:
+#   - Publishes updated monitor bindings on the topic: "<splitName>/<dataAttributePath>"
+#   - Subscribes to updated control commands on the topic: "<splitName>/<dataAttributePath>"
+# - Client-side simulation model:
+#   - Subscribes to updated monitor bindings on the topic: "cli/<splitName>/<dataAttributePath>"
+#   - Publishes updated control commands on the topic: "cli/<splitName>/<dataAttributePath>"
+# -----------------------------
+
+# Server Side Simulation Topics
+# Split Name: CCI_Main
+
+## Published Topics (Monitor Bindings)
+# These topics are used by the server-side sim. model to dispatch updated measurements to the client-side sim. model.
+
+CCI_Main/LD_Plant$PdCMMXU1$MX$TotW$mag$f
+# Read Active power measurement at the Point of Connection (PdC)
+
+CCI_Main/LD_Plant$PdCMMXU1$MX$TotVAr$mag$f
+# Read Reactive power measurement at the Point of Connection (PdC)
+
+CCI_Main/LD_Plant$VArSaDVAR1$VArTgtSptPct$mxVal$f
+# Read Reactive power setpoint as percentage of Smax (maximum apparent power at PdC)
+
+CCI_Main/LD_Plant$VArSaDVAR1$ST$Mod$stVal
+# Read Function activation mode for reactive power regulation (e.g. 1=on, 5=off)
+
+CCI_Main/LD_Plant$VArSaDVAR1$ST$Health$stVal
+# Read Physical state of the device linked to the logical node (e.g. 1=ok, 2=warning, 3=alarm)
+
+CCI_Main/LD_Plant$WSaDAGC1$WSptPct$mxVal$f
+# Read Active power setpoint as percentage of Smax (maximum apparent power at PdC)
+
+CCI_Main/LD_Plant$WSaDAGC1$ST$Mod$stVal
+# Read Function activation mode for active power regulation (e.g. 1=on, 5=off)
+
+CCI_Main/LD_Plant$WSaDAGC1$ST$Health$stVal
+# Read Physical state of the device linked to the logical node (e.g. 1=ok, 2=warning, 3=alarm)
+
+
+
+## Subscribed Topics (Control Bindings)
+# These topics are used by the server-side sim. model to receive updated setpoints from the client-side sim. model.
+
+CCI_Main/LD_Plant$VArSaDVAR1$VArTgtSptPct$Oper$ctlVal$f
+# Write reactive power setpoint as percentage of Smax (maximum apparent power at PdC)
+
+CCI_Main/LD_Plant$VArSaDVAR1$ST$Mod$Oper$ctlVal$f
+# Write function activation mode command for reactive power regulation (e.g. 1=on, 5=off)
+
+CCI_Main/LD_Plant$WSaDAGC1$WSptPct$Oper$ctlVal$f
+# Write active power setpoint as percentage of Smax (maximum apparent power at PdC)
+
+CCI_Main/LD_Plant$WSaDAGC1$ST$Mod$Oper$ctlVal$f
+# Write function activation mode command for active power regulation (e.g. 1=on, 5=off)
+
+
+
+
+
+
+# Client Side Simulation Topics
+# Split Name: CCI_Main
+
+## Subscribed Topics (Monitor Bindings)
+# These topics are used by the client-side sim. model to receive updated measurements from the server-side sim. model.
+
+cli/CCI_Main/LD_Plant$PdCMMXU1$MX$TotW$mag$f
+# Active power measurement at the Point of Connection (PdC)
+
+cli/CCI_Main/LD_Plant$PdCMMXU1$MX$TotVAr$mag$f
+# Reactive power measurement at the Point of Connection (PdC)
+
+cli/CCI_Main/LD_Plant$VArSaDVAR1$VArTgtSptPct$mxVal$f
+# Read active reactive power setpoint as percentage of Smax (maximum apparent power at PdC)
+
+cli/CCI_Main/LD_Plant$VArSaDVAR1$ST$Mod$stVal
+# Read function activation mode for reactive power regulation (e.g. 1=on, 5=off)
+
+cli/CCI_Main/LD_Plant$VArSaDVAR1$ST$Health$stVal
+# Read physical state of the device linked to the logical node (e.g. 1=ok, 2=warning, 3=alarm)
+
+cli/CCI_Main/LD_Plant$WSaDAGC1$WSptPct$mxVal$f
+# Read active power setpoint as percentage of Smax (maximum apparent power at PdC)
+
+cli/CCI_Main/LD_Plant$WSaDAGC1$ST$Mod$stVal
+# Read function activation mode for active power regulation (e.g. 1=on, 5=off)
+
+cli/CCI_Main/LD_Plant$WSaDAGC1$ST$Health$stVal
+# Read physical state of the device linked to the logical node (e.g. 1=ok, 2=warning, 3=alarm)
+
+
+
+## Published Topics (Control Bindings)
+# These topics are used by the client-side sim. model to dispatch updated setpoints to the server-side sim. model.
+
+cli/CCI_Main/LD_Plant$VArSaDVAR1$VArTgtSptPct$Oper$ctlVal$f
+# Write reactive power setpoint as percentage of Smax (maximum apparent power at PdC)
+
+cli/CCI_Main/LD_Plant$VArSaDVAR1$ST$Mod$Oper$ctlVal$f
+# Write function activation mode command for reactive power regulation (e.g. 1=on, 5=off)
+
+cli/CCI_Main/LD_Plant$WSaDAGC1$WSptPct$Oper$ctlVal$f
+# Write active power setpoint as percentage of Smax (maximum apparent power at PdC)
+
+cli/CCI_Main/LD_Plant$WSaDAGC1$ST$Mod$Oper$ctlVal$f
+# Write function activation mode command for active power regulation (e.g. 1=on, 5=off)
