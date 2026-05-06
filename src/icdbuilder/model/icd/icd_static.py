@@ -76,6 +76,24 @@ datasets: dict = {
       """
 }
 
+# Datasets: aggregator alarms, PoC measurements
+# The single generator/storage measurements datasets are not present in the aggregator ICD since they are not relevant at the aggregator level
+aggregatorDatasets: dict = {
+    "alarms": """
+      <DataSet name="DS_R_Stato_Allarmi_Segnali" desc="Alarm and signal state of the CCI">
+      <!-- that is DS_R_Status_Alarms_Signals of the CCI -->
+
+      </DataSet>
+      """,
+      "pocPeriodicMeas": """
+        <DataSet name="DS_R_PdC_Mis4sec" desc="Measurements at PoC every 4 sec of the CCI">
+        <!-- that is DS_R_PoC_Meas4sec of the CCI -->
+          <FCDA ldInst="LD_Plant" lnClass="MMXU" fc="MX" lnInst="1" prefix="PdC" doName="TotW" />
+          <FCDA ldInst="LD_Plant" lnClass="MMXU" fc="MX" lnInst="1" prefix="PdC" doName="TotVAr" />
+        </DataSet>
+      """
+}
+
 alarmsStaticFcdas = """
 <FCDA ldInst="LD_Plant" lnClass="DECP" fc="ST" lnInst="1" prefix="DisFR" doName="Beh" />
 <FCDA ldInst="LD_Plant" lnClass="DGEN" fc="ST" lnInst="1" prefix="DisFR" doName="Beh" />
@@ -94,6 +112,14 @@ alarmsStaticFcdas = """
 <FCDA ldInst="LD_Plant" lnClass="DVVR" fc="ST" lnInst="1" prefix="VArV" doName="FctOpSt" />
 <FCDA ldInst="LD_Plant" lnClass="DPFW" fc="ST" lnInst="1" prefix="PFW" doName="Beh" />
 <FCDA ldInst="LD_Plant" lnClass="DPFW" fc="ST" lnInst="1" prefix="PFW" doName="FctOpSt" />
+"""
+
+# Aggregator functional constraints (maybe Beh DOs are missing)
+aggregatorAlarmsStaticFcdas = """
+<FCDA ldInst="LD_Plant" lnClass="DAGC" fc="ST" lnInst="1" prefix="WSa" doName="Health" />
+<FCDA ldInst="LD_Plant" lnClass="DAGC" fc="ST" lnInst="1" prefix="WSa" doName="FctOpSt" />
+<FCDA ldInst="LD_Plant" lnClass="DVAR" fc="ST" lnInst="1" prefix="VArSa" doName="Health" />
+<FCDA ldInst="LD_Plant" lnClass="DVAR" fc="ST" lnInst="1" prefix="VArSa" doName="FctOpSt" />
 """
 
 alarmsDynFcdasTemplate = """<FCDA ldInst="LD_Plant" lnClass="DGEN" fc="ST" lnInst="{inst}" prefix="SSGG" doName="Health" />"""
@@ -146,6 +172,27 @@ reportControlBlocks = {
       </ReportControl>    
     """    
 }
+
+# Periodic Aggregator Reports linked to the previously defined datasets (only alarms and PoC measurements)
+aggregatorReportControlBlocks = {
+    "alarms": """
+      <ReportControl name="brcb_Stato_Allarmi_Segnali" confRev="1" datSet="DS_R_Stato_Allarmi_Segnali" rptID="CCI016_01LD_Plant/LLN0.brcb_Stato_Allarmi_Segnali" buffered="true" intgPd="0" bufTime="250" desc="Stato Allarmi e Segnali del CCI">
+      <!-- that is brcb_Status_Alarms_Signals of the CCI -->
+        <TrgOps dchg="true" qchg="true" gi="true" />
+        <OptFields seqNum="true" timeStamp="true" dataSet="true" reasonCode="true" dataRef="true" entryID="true" configRef="true" bufOvfl="true" />
+        <RptEnabled max="1" desc="Client Aggregator" />
+      </ReportControl>
+    """,
+    "pocPeriodicMeas": """
+      <ReportControl name="urcb_PdC_Mis4sec" confRev="1" datSet="DS_R_PdC_Mis4sec" rptID="CCI016_01LD_Plant/LLN0.urcb_PdC_Mis4sec" intgPd="4000" bufTime="0" desc="Misure al PdC a 4sec del CCI">
+      <!-- that is urcb_PoC_Meas4sec of the CCI -->
+        <TrgOps period="true" gi="true" />
+        <OptFields seqNum="true" timeStamp="true" dataSet="true" reasonCode="true" dataRef="true" entryID="true" configRef="true" />
+        <RptEnabled max="1" desc="Client Aggregator" />
+      </ReportControl>
+    """ 
+}
+
 
 ln0OtherDois = \
 """
@@ -378,6 +425,16 @@ measAvailPerGroup = """
   </DOI>
 </LN>
 <LN lnClass="MMXU" lnType="MMXU2" inst="1" prefix="St">
+  <DOI name="Beh" desc="">
+    <DAI name="stVal">
+      <Val>on</Val>
+    </DAI>
+  </DOI>
+</LN>
+"""
+
+aggregatorMeasAvailPerGroup = """
+<LN lnClass="MMXU" lnType="MMXU1" inst="1" prefix="PdC">
   <DOI name="Beh" desc="">
     <DAI name="stVal">
       <Val>on</Val>
@@ -674,6 +731,65 @@ controlFunConfigTemplate = """
   <DOI name="PFSetC" desc="cosfi value (point C) [-1.00..1.00]" />
   <DOI name="VLkIn" desc="Lock-in voltage of cosfi = f(P) [1.00..1.10] of nominal V (p.u.)" />
   <DOI name="VLkOut" desc="Lock-out voltage of cosfi = f(P) [0.90..1.00] of nominal V (p.u.)" />
+</LN>
+"""
+
+# Configuration of the active control function for the aggregator (currently "Inductive/Capacitive reactive power setpoint")
+aggregatorControlFunConfigTemplate = """
+<LN lnClass="DAGC" lnType="DAGC1" inst="1" prefix="WSa" desc="Control Function - modulation of W in feed/absorbtion at PoC - from Aggregator">
+  <DOI name="NamPlt">
+    <DAI name="lnNs">
+      <Val>(Tr)IEC 61850-CEI016:2025</Val>
+    </DAI>
+  </DOI>
+  <DOI name="Beh" desc="">
+    <DAI name="stVal">
+      <Val>off</Val>
+    </DAI>
+  </DOI>
+  <DOI name="WSptPct" desc="Setpoint of W in feed/absorbtion at PoC (percentage with sign with respect to Smax) [0..100]">
+    <DAI name="ctlModel">
+      <Val>sbo-with-enhanced-security</Val>
+    </DAI>
+    <SDI name="mxVal" desc="Setpoint of W in feed/absorbtion at PoC (percentage with sign with respect to Smax) [0..100]">
+      <DAI name="f" desc="Valore default set-point">
+        <Val>20</Val>
+      </DAI>
+    </SDI>
+  </DOI>
+  <DOI name="Mod" desc="Activation/deactivation [5 = Inactive, 1 = Active]">
+    <DAI name="stVal">
+      <Val>off</Val>
+    </DAI>
+    <DAI name="ctlModel">
+      <Val>sbo-with-enhanced-security</Val>
+    </DAI>
+  </DOI>
+</LN>
+<LN lnClass="DVAR" lnType="DVAR1" inst="1" prefix="VArSa" desc="Control Function - voltage regulation with respect to Inductive/Capacitive reactive power - from Aggregator">
+  <DOI name="NamPlt">
+    <DAI name="lnNs">
+      <Val>(Tr)IEC 61850-CEI016:2025</Val>
+    </DAI>
+  </DOI>
+  <DOI name="Beh" desc="">
+    <DAI name="stVal">
+      <Val>on</Val>
+    </DAI>
+  </DOI>
+  <DOI name="VArTgtSptPct" desc="Inductive/Capacitive VAr setpoint (percentage with sign with respect to Smax) [0..100]">
+    <DAI name="ctlModel">
+      <Val>sbo-with-enhanced-security</Val>
+    </DAI>
+  </DOI>
+  <DOI name="Mod" desc="Activation/deactivation [5 = Inactive, 1 = Active]">
+    <DAI name="stVal">
+      <Val>on</Val>
+    </DAI>
+    <DAI name="ctlModel">
+      <Val>sbo-with-enhanced-security</Val>
+    </DAI>
+  </DOI>
 </LN>
 """
 

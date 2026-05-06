@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from icdbuilder.model.icd import ICD, ICDBuilder
+from icdbuilder.model.icd import ICD, ICDBuilder, AggregatorICDBuilder
 from icdbuilder.model.power import PowerModel, Split, SplitMethod
-from icdbuilder.model.binder.binder import PandapowerBinding, PandapowerElementType, PandapowerBinder, AggregatorBinding, Binding, AggregatorBinder
+from icdbuilder.model.binder.binder import PandapowerBinding, PandapowerElementType, PandapowerBinder
+from icdbuilder.model.binder.binder import AggregatorBinding, Binding, AggregatorBinder
 from pandapower import pandapowerNet
 from pathlib import Path
 import os, json
@@ -89,9 +90,24 @@ class ForAggregatorBinderBuilder(Builder):
         splitBindings = SplitBindings(split, bindings)
         if outputPath is not None:
             os.makedirs(outputPath, exist_ok=True)
-            with open(outputPath.joinpath("aggregator_bindings.json"), 'w') as f:
+            with open(outputPath.joinpath(f"{split.name}_bindings.json"), 'w') as f:
                 f.write(json.dumps(splitBindings.__dict__(), indent=4))
         
-        mergedBindings: dict[str, SplitBindings] = {"Aggregator": splitBindings}
+        mergedBindings: dict[str, SplitBindings] = {cciName: splitBindings}
+        if outputPath is not None:
+            with open(outputPath.joinpath("bindings.json"), "w") as f:
+                f.write(json.dumps({"merged": [mergedBindings[key].__dict__() for key in mergedBindings.keys()]}, indent=4))
+
         return mergedBindings
-        
+
+class ForAggregatorICDBuilder(Builder):
+    def __init__(self):
+        super().__init__(network=None)
+
+    def build(self, cciName: str, outputPath: Path | None = None) -> Split:
+        split = Split(name=cciName)
+        icd = AggregatorICDBuilder.build(split=split)
+        if outputPath is not None:
+            os.makedirs(outputPath, exist_ok=True)
+            icd.toFile(outputPath.joinpath(f"{cciName}.icd.xml"))
+        return split
