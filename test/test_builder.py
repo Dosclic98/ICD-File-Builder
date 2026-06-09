@@ -13,8 +13,8 @@ if __name__ == "__main__":
     bindingsBuilder.build(splitMethod=SplitMethod.BUS, outputPath=Path("output", "bus_split_bindings"))
 
     aggrBindingsBuilder = ForAggregatorBinderBuilder()
-    aggrBindingsBuilder.build(cciName="CCI_Main", outputPath=Path("output", "aggregator_bindings"))
+    aggrBindingsBuilder.build(cciPrefix="CCI-Gen", numCCI=2, outputPath=Path("output", "aggregator_bindings"))
 
     aggrICDBuilder = ForAggregatorICDBuilder()
-    aggrICDBuilder.build(cciName="CCI_Main", outputPath=Path("output", "aggregator"))
+    aggrICDBuilder.build(cciPrefix="CCI-Gen", numCCI=2, outputPath=Path("output", "aggregator"))
     
