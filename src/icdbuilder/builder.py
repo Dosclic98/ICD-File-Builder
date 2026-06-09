@@ -84,16 +84,19 @@ class ForAggregatorBinderBuilder(Builder):
     def __init__(self):
         super().__init__(network=None)
 
-    def build(self, cciName: str, outputPath: Path | None = None) -> dict[str, SplitBindings]:
-        bindings: list[AggregatorBinding] = AggregatorBinder.buildBindings()
-        split = Split(name=cciName)
-        splitBindings = SplitBindings(split, bindings)
-        if outputPath is not None:
-            os.makedirs(outputPath, exist_ok=True)
-            with open(outputPath.joinpath(f"{split.name}_bindings.json"), 'w') as f:
-                f.write(json.dumps(splitBindings.__dict__(), indent=4))
-        
-        mergedBindings: dict[str, SplitBindings] = {cciName: splitBindings}
+    def build(self, cciPrefix: str, numCCI: int = 1, outputPath: Path | None = None) -> dict[str, SplitBindings]:
+        mergedBindings: dict[str, SplitBindings] = {}
+        for i in range(numCCI):
+            cciName = f"{cciPrefix}-{i+1}"
+            bindings: list[AggregatorBinding] = AggregatorBinder.buildBindings()
+            split = Split(name=cciName)
+            splitBindings = SplitBindings(split, bindings)
+            if outputPath is not None:
+                os.makedirs(outputPath, exist_ok=True)
+                with open(outputPath.joinpath(f"{split.name}_bindings.json"), 'w') as f:
+                    f.write(json.dumps(splitBindings.__dict__(), indent=4))
+            mergedBindings[cciName] = splitBindings
+            
         if outputPath is not None:
             with open(outputPath.joinpath("bindings.json"), "w") as f:
                 f.write(json.dumps({"merged": [mergedBindings[key].__dict__() for key in mergedBindings.keys()]}, indent=4))
@@ -104,10 +107,14 @@ class ForAggregatorICDBuilder(Builder):
     def __init__(self):
         super().__init__(network=None)
 
-    def build(self, cciName: str, outputPath: Path | None = None) -> Split:
-        split = Split(name=cciName)
-        icd = AggregatorICDBuilder.build(split=split)
-        if outputPath is not None:
-            os.makedirs(outputPath, exist_ok=True)
-            icd.toFile(outputPath.joinpath(f"{cciName}.icd.xml"))
-        return split
+    def build(self, cciPrefix: str, numCCI: int = 1, outputPath: Path | None = None) -> list[Split]:
+        splits: list[Split] = []
+        for i in range(numCCI):
+            cciName = f"{cciPrefix}-{i+1}"
+            split = Split(name=cciName)
+            icd = AggregatorICDBuilder.build(split=split)
+            if outputPath is not None:
+                os.makedirs(outputPath, exist_ok=True)
+                icd.toFile(outputPath.joinpath(f"{cciName}.icd.xml"))
+            splits.append(split)
+        return splits
